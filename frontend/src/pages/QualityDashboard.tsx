@@ -83,9 +83,7 @@ export default function QualityDashboard() {
       if (response.ok) {
         const result = await response.json();
         // Prepend host URL to show static images
-        const fullImagePath = result.image_path.startsWith("http") 
-          ? result.image_path 
-          : `http://localhost:8000${result.image_path}`;
+        const fullImagePath = result.image_path;
         
         setInspectionResult({
           status: result.status,
@@ -134,11 +132,11 @@ export default function QualityDashboard() {
   const inspectDemoPart = async (partName: string) => {
     setLoading(true);
     setInspectionResult(null);
-    setPreviewUrl(`http://localhost:8000/datasets/demo_images/${partName}`);
+    setPreviewUrl(`/datasets/demo_images/${partName}`);
     
     try {
       // Fetch part image as blob
-      const imgResponse = await fetch(`http://localhost:8000/datasets/demo_images/${partName}`);
+      const imgResponse = await fetch(`/datasets/demo_images/${partName}`);
       const blob = await imgResponse.blob();
       const file = new File([blob], partName, { type: "image/png" });
       
