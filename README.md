@@ -110,9 +110,9 @@ AI-Manufacturing-Data-Platform/
    ```
 
 ### 2. Startup Servers
-1. Start the FastAPI backend server (auto-creates tables, seeds users, generates CV parts, and runs on port 8000):
+1. Start the FastAPI backend server (auto-creates tables, seeds users, generates CV parts, and runs on port 8001):
    ```bash
-   uvicorn backend.app.main:app --reload
+   uvicorn backend.app.main:app --port 8001 --reload
    ```
 2. Start the React frontend client:
    ```bash
