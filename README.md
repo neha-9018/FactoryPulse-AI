@@ -2,7 +2,7 @@
 
 An enterprise-grade, Clean Architecture Industry 4.0 data platform combining Data Engineering (ETL, SQL), Machine Learning, Computer Vision, and full-stack React & FastAPI interfaces to simulate, monitor, and optimize smart factory operations.
 
-Inspired by automation and manufacturing solutions from Meidensha, Mitsubishi Electric, Bosch, and Siemens.
+Inspired by automation and manufacturing solutions from Meidensha, Mitsubishi Electric, Bosch, Siemens, and Hitachi.
 
 ---
 
@@ -14,47 +14,53 @@ AI-Manufacturing-Data-Platform/
 │   ├── app/
 │   │   ├── api/
 │   │   │   ├── endpoints/
-│   │   │   │   ├── auth.py      # Login and JWT auth endpoints
-│   │   │   │   ├── machines.py  # Shop floor machinery routes
-│   │   │   │   ├── dashboard.py # Production chart metrics aggregator
-│   │   │   │   └── alerts.py    # Alarm status controllers
-│   │   │   └── deps.py          # Role-based auth dependencies
+│   │   │   │   ├── auth.py        # Login and JWT token authentication
+│   │   │   │   ├── machines.py    # Shop floor machinery master routes
+│   │   │   │   ├── dashboard.py   # Shift production aggregator
+│   │   │   │   ├── alerts.py      # Active alarms and triggers
+│   │   │   │   ├── predictions.py # ML forecasting & health diagnostics
+│   │   │   │   ├── quality.py     # CV quality inspection uploading
+│   │   │   │   └── chatbot.py     # AI text-to-SQL manufacturing chatbot
+│   │   │   └── deps.py            # JWT and role-based permissions
 │   │   ├── core/
-│   │   │   └── security.py      # Direct bcrypt hashing and JWT token utils
+│   │   │   └── security.py        # Direct bcrypt hashing
 │   │   ├── db/
-│   │   │   ├── models.py        # SQLAlchemy database model mappings
-│   │   │   └── session.py       # Engine and sessionmaker hooks
-│   │   └── main.py              # FastAPI app startup and CORS config
-│   ├── requirements.txt# Backend and data science package dependencies
-│   └── .env            # Private environment variables (database credentials)
-├── frontend/           # React + TypeScript + Tailwind CSS frontend
+│   │   │   ├── models.py          # SQLAlchemy PostgreSQL schemas
+│   │   │   └── session.py         # Sessionmaker engine hooks
+│   │   └── main.py                # App entrypoint and static image mounts
+│   ├── requirements.txt   # Backend & ML scikit-learn/xgboost/opencv deps
+│   └── .env               # Database configs & GEMINI_API_KEY credentials
+├── frontend/           # React + TypeScript + Tailwind CSS client dashboard
 │   ├── src/
 │   │   ├── components/
-│   │   │   └── DashboardLayout.tsx # Sidebar shell and navigation controls
+│   │   │   └── DashboardLayout.tsx  # Sidebar portal frame
 │   │   ├── pages/
-│   │   │   ├── ExecutiveDashboard.tsx   # Asset health grids and status modals
-│   │   │   ├── ProductionDashboard.tsx  # Shift yields and defects charts
-│   │   │   ├── MaintenanceDashboard.tsx # AI failure projections and work orders
-│   │   │   └── AnalyticsDashboard.tsx   # Live sensor time-series area charts
-│   │   ├── App.tsx     # Router protection and authentication context
-│   │   ├── index.css   # Custom styling (glassmorphism layouts)
-│   │   └── main.tsx    # Virtual DOM mount point
-│   ├── package.json    # Frontend dependency mappings (Recharts, Lucide, Tailwind)
-│   ├── tailwind.config.js # Dark slate and neon cyan layout configurations
-│   ├── tsconfig.json   # TypeScript configuration options
-│   └── vite.config.ts  # Vite bundler, proxy configuration
-├── database/           # PostgreSQL schemas, migrations, and ER diagrams
-│   └── schema.sql      # Schema definitions with indices
-├── etl/                # Ingestion scripts, data validation, and transformations
-│   ├── generate_data.py# Simulated physical data generator (100k+ rows)
-│   └── etl_pipeline.py # Extract-Transform-Load (ETL) ingestion engine
-├── ml/                 # Predictive maintenance training and model comparison
-├── computer_vision/    # Quality inspection models (OpenCV, YOLO)
-├── datasets/           # Raw and processed datasets (CSV, JSON, Excel) (Git ignored)
-├── tests/              # Automated unit and integration tests
-│   ├── test_generator.py # Tests for mock data generation
-│   ├── test_etl.py       # Tests for ETL transformations
-│   └── test_api.py       # Tests for REST security and RBAC
+│   │   │   ├── ExecutiveDashboard.tsx   # Asset health matrix and alarm board
+│   │   │   ├── ProductionDashboard.tsx  # Production stats and defect distribution
+│   │   │   ├── QualityDashboard.tsx     # OpenCV uploads inspection camera
+│   │   │   ├── MaintenanceDashboard.tsx # Real-time ML diagnostic gauges
+│   │   │   ├── AnalyticsDashboard.tsx   # Live sensor time-series charts
+│   │   │   └── AssistantDashboard.tsx   # AI Natural Language database chat portal
+│   │   ├── App.tsx        # Protected route wrappers and routing
+│   │   ├── index.css      # Styling tokens & glassmorphism details
+│   │   └── main.tsx       # VDOM mount point
+│   ├── package.json       # Node dependency locks
+│   └── vite.config.ts     # Dev proxy forwarding
+├── ml/                 # Machine learning training & prediction
+│   ├── train.py           # Multi-classifier comparison script (RF, XGB, LGBM)
+│   ├── predict.py         # Diagnostic inference engine
+│   └── models/            # Serialized pickle model checkouts (.pkl)
+├── computer_vision/    # Quality inspection models & image processing
+│   ├── generate_demo_images.py # Programmatically seeds mock parts (Healthy, Crack, Color, Size)
+│   └── inspector.py       # OpenCV color check, Canny filters, and dimension contours
+├── datasets/           # CSV datasets and uploads directory (Git ignored)
+├── database/           # PostgreSQL definitions
+│   └── schema.sql         # Base database definitions
+├── tests/              # Comprehensive pytest suite
+│   ├── test_api.py        # Auth & machine routes RBAC checks
+│   ├── test_ml.py         # Model accuracy checks on anomalous metrics
+│   ├── test_cv.py         # OpenCV image crack & size check filters
+│   └── test_chatbot.py    # Intent parsing & SQL summary rendering
 └── README.md           # Master documentation
 ```
 
@@ -63,70 +69,69 @@ AI-Manufacturing-Data-Platform/
 ## Roadmap & Milestones
 
 1. **Milestone 1: Project Setup + PostgreSQL + ETL** (Completed)
-   * Repository initialization and directory setup.
-   * High-fidelity database schema & design.
-   * High-volume factory simulator (108,000 sensor & production records).
-   * Transformative ETL Pipeline cleaning, validating, and loading raw data to PostgreSQL.
+   * Simulated high-fidelity factory logs (108,000 records).
+   * Robust ETL script converting raw entries to PostgreSQL database tables.
 2. **Milestone 2: Dashboard & Analytics** (Completed)
-   * Enterprise FastAPI web endpoints.
-   * React, TypeScript, and Tailwind frontend setup.
-   * Real-time charts, KPIs, and machine status boards.
-3. **Milestone 3: Predictive Maintenance** (Next)
-   * Failure classification and regression (Time-to-failure, Health Score).
-   * Models: XGBoost, Random Forest, LightGBM.
-4. **Milestone 4: Quality Inspection**
-   * Computer Vision pipeline detecting label alignment, surface cracks, and dimension failures.
-5. **Milestone 5: AI Assistant**
-   * Google Gemini LLM agent query-to-SQL dashboard helper.
-6. **Milestone 6: Docker & AWS Deployment**
-   * Containerize services using Docker Compose.
-   * Production deployment configuration on AWS EC2.
+   * High-speed FastAPI REST endpoints with role permissions (Admin, Engineer, Operator).
+   * Interactive React client, Recharts analytics, and alert consoles.
+3. **Milestone 3: Predictive Maintenance** (Completed)
+   * Multi-classifier training (Random Forest, XGBoost, LightGBM). Random Forest selected (**0.977 F1-Score**).
+   * dynamic gauge diagnostics linked to live backend predictions.
+4. **Milestone 4: Quality Inspection** (Completed)
+   * OpenCV visual checker detecting cracks, sizes, missing labels, and colors.
+   * Upload endpoints logging inspections directly in SQLite/Postgres.
+5. **Milestone 5: AI Assistant** (Completed)
+   * Natural language query routing executing context queries against SQL tables.
+   * Google Gemini flash agent summarizer with standalone local templates.
+6. **Milestone 6: Docker & AWS Deployment** (Next)
+   * Containerize database, FastAPI, and Vite services.
+   * Configure AWS staging.
 
 ---
 
-## Ingestion & Verification
+## Running Instructions
 
 ### Prerequisites
 * Python 3.10+
 * Node.js v18+
 
-### 1. Ingestion Phase
+### 1. Backend Setup & Ingestion
 1. Install Python packages:
-   ```powershell
+   ```bash
    pip install -r backend/requirements.txt
    ```
-2. Generate the factory logs:
-   ```powershell
+2. Generate the factory telemetry database:
+   ```bash
    python etl/generate_data.py
    ```
-3. Run the ETL Pipeline (requires PostgreSQL to be active as configured in `backend/.env`):
-   ```powershell
+3. Run the ETL Pipeline (requires PostgreSQL to be active as configured in `backend/.env`, otherwise skips database ingestion and utilizes frontend simulation):
+   ```bash
    python etl/etl_pipeline.py
    ```
 
-### 2. Launching Backend & Frontend
-1. Start the FastAPI backend server (loads database session, seeds default users, and binds to port 8000):
-   ```powershell
+### 2. Startup Servers
+1. Start the FastAPI backend server (auto-creates tables, seeds users, generates CV parts, and runs on port 8000):
+   ```bash
    uvicorn backend.app.main:app --reload
    ```
-2. In a separate terminal shell, install frontend packages and start the Vite React development server:
-   ```powershell
+2. Start the React frontend client:
+   ```bash
    cd frontend
    npm install
    npm run dev
    ```
-3. Open `http://localhost:3000` to view the Portal.
+3. Open `http://localhost:3000` in your web browser.
 
 #### Demo Credentials:
 * **Admin**: User `admin` / Password `Password123`
 * **Engineer**: User `engineer` / Password `Password123`
 * **Operator**: User `operator` / Password `Password123`
 
-*Note: The frontend has been designed with a local mock data fallback. If the backend is offline, the React dashboards will automatically load high-fidelity simulated telemetry so you can test all features immediately.*
+*Note: The frontend has built-in mock fallback capabilities. If you do not have PostgreSQL installed, the Vite app runs 100% of features locally using client-side diagnostic simulation.*
 
-### 3. Running Tests
-Run the comprehensive test suite verifying datasets, ETL transforms, and API endpoints:
-```powershell
-pytest tests/
+### 3. Verification & Testing
+To execute the complete unit testing suite verifying all models, data pipelines, and security layers, run:
+```bash
+pytest
 ```
-All tests should pass successfully.
+All 17 tests should pass successfully.
