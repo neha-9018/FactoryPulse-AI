@@ -53,35 +53,35 @@ def startup_db_setup():
 
         db = SessionLocal()
         try:
-            # Seed demo users if empty
-            if db.query(User).count() == 0:
-                logger.info("Seeding system users (Admin, Engineer, Operator)...")
-                demo_users = [
-                    User(
-                        username="admin",
-                        email="admin@meidensha.com",
-                        password_hash=get_password_hash("Password123"),
-                        role="ADMIN",
-                        is_active=True
-                    ),
-                    User(
-                        username="engineer",
-                        email="engineer@meidensha.com",
-                        password_hash=get_password_hash("Password123"),
-                        role="ENGINEER",
-                        is_active=True
-                    ),
-                    User(
-                        username="operator",
-                        email="operator@meidensha.com",
-                        password_hash=get_password_hash("Password123"),
-                        role="OPERATOR",
+            logger.info("Syncing system users...")
+            users_to_seed = [
+                {"username": "admin", "email": "admin@meidensha.com", "password": "admin123", "role": "ADMIN"},
+                {"username": "engineer_satoh", "email": "satoh@meidensha.com", "password": "admin123", "role": "ENGINEER"},
+                {"username": "operator_suzuki", "email": "suzuki@meidensha.com", "password": "admin123", "role": "OPERATOR"},
+                {"username": "engineer", "email": "engineer@meidensha.com", "password": "Password123", "role": "ENGINEER"},
+                {"username": "operator", "email": "operator@meidensha.com", "password": "Password123", "role": "OPERATOR"},
+            ]
+            
+            for u_data in users_to_seed:
+                user = db.query(User).filter(User.username == u_data["username"]).first()
+                if not user:
+                    user = User(
+                        username=u_data["username"],
+                        email=u_data["email"],
+                        password_hash=get_password_hash(u_data["password"]),
+                        role=u_data["role"],
                         is_active=True
                     )
-                ]
-                db.add_all(demo_users)
-                db.commit()
-                logger.info("[SUCCESS] Seeding complete! Credentials: username/Password123")
+                    db.add(user)
+                    logger.info(f"Seeded user: {u_data['username']}")
+                else:
+                    # Update password to ensure it matches
+                    user.password_hash = get_password_hash(u_data["password"])
+                    user.role = u_data["role"]
+                    logger.info(f"Updated user credentials: {u_data['username']}")
+            
+            db.commit()
+            logger.info("[SUCCESS] Seeding complete!")
         except Exception as se:
             db.rollback()
             logger.error(f"Error seeding demo users: {se}")
