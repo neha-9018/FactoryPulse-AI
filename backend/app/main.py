@@ -2,6 +2,7 @@ import os
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from backend.app.db.session import engine, SessionLocal
@@ -9,7 +10,8 @@ from backend.app.db.models import Base, User
 from backend.app.core.security import get_password_hash
 
 # Set up endpoints
-from backend.app.api.endpoints import auth, machines, dashboard, alerts, predictions
+from backend.app.api.endpoints import auth, machines, dashboard, alerts, predictions, quality
+from computer_vision.generate_demo_images import generate_demo_parts
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,23 +23,34 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS Policy configuration (for React dev client communication)
+# CORS Policy configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict to dashboard domains
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Mount datasets directory to serve static uploaded and demo images
+DATASETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "datasets")
+os.makedirs(DATASETS_DIR, exist_ok=True)
+app.mount("/datasets", StaticFiles(directory=DATASETS_DIR), name="datasets")
+
 # Startup Seeding Event
 @app.on_event("startup")
 def startup_db_setup():
-    """Ensure database tables exist and seed demo users for easy logging-in."""
+    """Ensure database tables exist, seed demo users, and generate demo parts images for CV testing."""
     try:
         logger.info("Verifying tables exist...")
         Base.metadata.create_all(bind=engine)
         
+        # Programmatically seed demo parts images
+        try:
+            generate_demo_parts()
+        except Exception as cve:
+            logger.error(f"Error generating demo parts images: {cve}")
+
         db = SessionLocal()
         try:
             # Seed demo users if empty
@@ -84,6 +97,7 @@ app.include_router(machines.router, prefix="/api/v1/machines", tags=["Machines M
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Analytics Dashboard"])
 app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["Factory Alerts"])
 app.include_router(predictions.router, prefix="/api/v1/predictions", tags=["ML Predictive Maintenance"])
+app.include_router(quality.router, prefix="/api/v1/quality", tags=["CV Quality Inspection"])
 
 @app.get("/")
 def read_root():

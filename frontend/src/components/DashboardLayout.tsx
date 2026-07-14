@@ -12,7 +12,8 @@ import {
   Factory,
   CheckCircle2,
   Menu,
-  X
+  X,
+  Camera
 } from "lucide-react";
 
 export default function DashboardLayout() {
@@ -31,6 +32,7 @@ export default function DashboardLayout() {
   const navItems = [
     { name: "Executive View", path: "/", icon: LayoutDashboard, roles: ["ADMIN", "ENGINEER", "OPERATOR", "MANAGER"] },
     { name: "Production logs", path: "/production", icon: BarChart3, roles: ["ADMIN", "ENGINEER", "MANAGER"] },
+    { name: "Quality Control", path: "/quality", icon: Camera, roles: ["ADMIN", "ENGINEER", "OPERATOR"] },
     { name: "Maintenance AI", path: "/maintenance", icon: Wrench, roles: ["ADMIN", "ENGINEER", "OPERATOR"] },
     { name: "Custom Analytics", path: "/analytics", icon: LineChart, roles: ["ADMIN", "ENGINEER", "MANAGER"] }
   ];

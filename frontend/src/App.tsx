@@ -5,6 +5,7 @@ import ExecutiveDashboard from "./pages/ExecutiveDashboard";
 import ProductionDashboard from "./pages/ProductionDashboard";
 import MaintenanceDashboard from "./pages/MaintenanceDashboard";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
+import QualityDashboard from "./pages/QualityDashboard";
 import { ShieldAlert, Cpu } from "lucide-react";
 
 // Auth Context
@@ -80,6 +81,7 @@ export default function App() {
             <Route path="production" element={<ProductionDashboard />} />
             <Route path="maintenance" element={<MaintenanceDashboard />} />
             <Route path="analytics" element={<AnalyticsDashboard />} />
+            <Route path="quality" element={<QualityDashboard />} />
           </Route>
 
           <Route path="/unauthorized" element={<UnauthorizedView />} />
