@@ -12,25 +12,49 @@ Inspired by automation and manufacturing solutions from Meidensha, Mitsubishi El
 AI-Manufacturing-Data-Platform/
 ├── backend/            # FastAPI REST API backend
 │   ├── app/
+│   │   ├── api/
+│   │   │   ├── endpoints/
+│   │   │   │   ├── auth.py      # Login and JWT auth endpoints
+│   │   │   │   ├── machines.py  # Shop floor machinery routes
+│   │   │   │   ├── dashboard.py # Production chart metrics aggregator
+│   │   │   │   └── alerts.py    # Alarm status controllers
+│   │   │   └── deps.py          # Role-based auth dependencies
+│   │   ├── core/
+│   │   │   └── security.py      # Direct bcrypt hashing and JWT token utils
 │   │   ├── db/
-│   │   │   ├── models.py      # SQLAlchemy DB ORM models
-│   │   │   └── session.py     # Database engine & sessionmaker config
-│   └── requirements.txt# Backend and data science requirements
+│   │   │   ├── models.py        # SQLAlchemy database model mappings
+│   │   │   └── session.py       # Engine and sessionmaker hooks
+│   │   └── main.py              # FastAPI app startup and CORS config
+│   ├── requirements.txt# Backend and data science package dependencies
+│   └── .env            # Private environment variables (database credentials)
 ├── frontend/           # React + TypeScript + Tailwind CSS frontend
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── DashboardLayout.tsx # Sidebar shell and navigation controls
+│   │   ├── pages/
+│   │   │   ├── ExecutiveDashboard.tsx   # Asset health grids and status modals
+│   │   │   ├── ProductionDashboard.tsx  # Shift yields and defects charts
+│   │   │   ├── MaintenanceDashboard.tsx # AI failure projections and work orders
+│   │   │   └── AnalyticsDashboard.tsx   # Live sensor time-series area charts
+│   │   ├── App.tsx     # Router protection and authentication context
+│   │   ├── index.css   # Custom styling (glassmorphism layouts)
+│   │   └── main.tsx    # Virtual DOM mount point
+│   ├── package.json    # Frontend dependency mappings (Recharts, Lucide, Tailwind)
+│   ├── tailwind.config.js # Dark slate and neon cyan layout configurations
+│   ├── tsconfig.json   # TypeScript configuration options
+│   └── vite.config.ts  # Vite bundler, proxy configuration
 ├── database/           # PostgreSQL schemas, migrations, and ER diagrams
-│   └── schema.sql      # Database schema design with relations
+│   └── schema.sql      # Schema definitions with indices
 ├── etl/                # Ingestion scripts, data validation, and transformations
-│   ├── generate_data.py# Simulated physics-based factory data generator
-│   └── etl_pipeline.py # Robust Extract-Transform-Load (ETL) ingestion engine
+│   ├── generate_data.py# Simulated physical data generator (100k+ rows)
+│   └── etl_pipeline.py # Extract-Transform-Load (ETL) ingestion engine
 ├── ml/                 # Predictive maintenance training and model comparison
 ├── computer_vision/    # Quality inspection models (OpenCV, YOLO)
-├── dashboard/          # Configs, scripts, or templates for factory dashboarding
 ├── datasets/           # Raw and processed datasets (CSV, JSON, Excel) (Git ignored)
-├── docker/             # Containerization files (Dockerfiles, compose)
-├── docs/               # System architecture and user documentation
 ├── tests/              # Automated unit and integration tests
 │   ├── test_generator.py # Tests for mock data generation
-│   └── test_etl.py       # Tests for ETL transformations
+│   ├── test_etl.py       # Tests for ETL transformations
+│   └── test_api.py       # Tests for REST security and RBAC
 └── README.md           # Master documentation
 ```
 
@@ -43,11 +67,11 @@ AI-Manufacturing-Data-Platform/
    * High-fidelity database schema & design.
    * High-volume factory simulator (108,000 sensor & production records).
    * Transformative ETL Pipeline cleaning, validating, and loading raw data to PostgreSQL.
-2. **Milestone 2: Dashboard & Analytics** (Next)
+2. **Milestone 2: Dashboard & Analytics** (Completed)
    * Enterprise FastAPI web endpoints.
    * React, TypeScript, and Tailwind frontend setup.
    * Real-time charts, KPIs, and machine status boards.
-3. **Milestone 3: Predictive Maintenance**
+3. **Milestone 3: Predictive Maintenance** (Next)
    * Failure classification and regression (Time-to-failure, Health Score).
    * Models: XGBoost, Random Forest, LightGBM.
 4. **Milestone 4: Quality Inspection**
@@ -60,54 +84,49 @@ AI-Manufacturing-Data-Platform/
 
 ---
 
-## Milestone 1 Implementation
-
-### 1. Database Design & Schema
-The relational database structure matches standard enterprise shop-floor telemetry systems:
-* **users**: User authentication and Role-Based Access Control (RBAC) (Admin, Engineer, Operator, Manager).
-* **machines**: Shop-floor assets tracking status (Operational, Maintenance, Offline, Failing).
-* **sensor_data**: High-frequency physical variables (temperature, pressure, voltage, RPM, vibration).
-* **production**: Ingests shift counts, defect counts, and computes OEE (Overall Equipment Effectiveness).
-* **quality_inspection**: Stores results of computer vision part inspections.
-* **maintenance_logs**: Tracks technician maintenance records and cost.
-* **predictions**: AI predictive maintenance inferences (health score, failure probability).
-* **alerts**: Automatically captures rule-based alarms (e.g., Temperature > threshold).
-
-### 2. Data Simulator
-Generates a realistic, physical dataset under `datasets/` containing:
-* **`machines.json`**: Static configuration metadata.
-* **`sensor_data.csv`**: Over 108,000 sensor readings with simulated physics, age wear, and physical anomaly spikes.
-* **`production_data.xlsx`**: Excel records tracking morning/afternoon/night shifts.
-* **`maintenance_data.csv`**: Logs detailing history of preventive/corrective actions.
-
-### 3. ETL Pipeline
-Located in `etl/etl_pipeline.py`, this script extracts raw data from multi-format files, cleans duplicates, imputes missing records using time-based interpolation, flags statistical outliers via Z-score analysis, and performs high-speed bulk database load operations.
-
----
-
 ## Ingestion & Verification
 
 ### Prerequisites
-Ensure Python 3.10+ is installed.
+* Python 3.10+
+* Node.js v18+
 
-### Setup and Ingestion
-1. Install dependencies:
+### 1. Ingestion Phase
+1. Install Python packages:
    ```powershell
    pip install -r backend/requirements.txt
    ```
-2. Set up the local `.env` database credentials inside `backend/.env`.
-3. Generate the datasets:
+2. Generate the factory logs:
    ```powershell
    python etl/generate_data.py
    ```
-4. Run the ETL Pipeline (requires PostgreSQL to be active as configured in `.env`):
+3. Run the ETL Pipeline (requires PostgreSQL to be active as configured in `backend/.env`):
    ```powershell
    python etl/etl_pipeline.py
    ```
 
-### Running Tests
-Execute the unit test suite to verify the simulation logic and cleaning transforms:
+### 2. Launching Backend & Frontend
+1. Start the FastAPI backend server (loads database session, seeds default users, and binds to port 8000):
+   ```powershell
+   uvicorn backend.app.main:app --reload
+   ```
+2. In a separate terminal shell, install frontend packages and start the Vite React development server:
+   ```powershell
+   cd frontend
+   npm install
+   npm run dev
+   ```
+3. Open `http://localhost:3000` to view the Portal.
+
+#### Demo Credentials:
+* **Admin**: User `admin` / Password `Password123`
+* **Engineer**: User `engineer` / Password `Password123`
+* **Operator**: User `operator` / Password `Password123`
+
+*Note: The frontend has been designed with a local mock data fallback. If the backend is offline, the React dashboards will automatically load high-fidelity simulated telemetry so you can test all features immediately.*
+
+### 3. Running Tests
+Run the comprehensive test suite verifying datasets, ETL transforms, and API endpoints:
 ```powershell
 pytest tests/
 ```
-All 6 tests should output `passed`.
+All tests should pass successfully.
