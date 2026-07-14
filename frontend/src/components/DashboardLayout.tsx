@@ -13,7 +13,8 @@ import {
   CheckCircle2,
   Menu,
   X,
-  Camera
+  Camera,
+  MessageSquare
 } from "lucide-react";
 
 export default function DashboardLayout() {
@@ -34,7 +35,8 @@ export default function DashboardLayout() {
     { name: "Production logs", path: "/production", icon: BarChart3, roles: ["ADMIN", "ENGINEER", "MANAGER"] },
     { name: "Quality Control", path: "/quality", icon: Camera, roles: ["ADMIN", "ENGINEER", "OPERATOR"] },
     { name: "Maintenance AI", path: "/maintenance", icon: Wrench, roles: ["ADMIN", "ENGINEER", "OPERATOR"] },
-    { name: "Custom Analytics", path: "/analytics", icon: LineChart, roles: ["ADMIN", "ENGINEER", "MANAGER"] }
+    { name: "Custom Analytics", path: "/analytics", icon: LineChart, roles: ["ADMIN", "ENGINEER", "MANAGER"] },
+    { name: "AI Assistant", path: "/assistant", icon: MessageSquare, roles: ["ADMIN", "ENGINEER", "OPERATOR", "MANAGER"] }
   ];
 
   const handleLogout = () => {

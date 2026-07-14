@@ -10,7 +10,7 @@ from backend.app.db.models import Base, User
 from backend.app.core.security import get_password_hash
 
 # Set up endpoints
-from backend.app.api.endpoints import auth, machines, dashboard, alerts, predictions, quality
+from backend.app.api.endpoints import auth, machines, dashboard, alerts, predictions, quality, chatbot
 from computer_vision.generate_demo_images import generate_demo_parts
 
 logging.basicConfig(level=logging.INFO)
@@ -98,6 +98,7 @@ app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Analytic
 app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["Factory Alerts"])
 app.include_router(predictions.router, prefix="/api/v1/predictions", tags=["ML Predictive Maintenance"])
 app.include_router(quality.router, prefix="/api/v1/quality", tags=["CV Quality Inspection"])
+app.include_router(chatbot.router, prefix="/api/v1/chatbot", tags=["AI Manufacturing Assistant"])
 
 @app.get("/")
 def read_root():

@@ -24,12 +24,12 @@ def override_get_db():
     finally:
         db.close()
 
-app.dependency_overrides[get_db] = override_get_db
 
 class TestAPIEndpoints(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        app.dependency_overrides[get_db] = override_get_db
         Base.metadata.create_all(bind=engine)
         db = TestingSessionLocal()
         
@@ -48,6 +48,7 @@ class TestAPIEndpoints(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        app.dependency_overrides.clear()
         Base.metadata.drop_all(bind=engine)
         engine.dispose()
         try:
