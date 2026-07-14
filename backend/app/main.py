@@ -9,7 +9,7 @@ from backend.app.db.models import Base, User
 from backend.app.core.security import get_password_hash
 
 # Set up endpoints
-from backend.app.api.endpoints import auth, machines, dashboard, alerts
+from backend.app.api.endpoints import auth, machines, dashboard, alerts, predictions
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -83,6 +83,7 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(machines.router, prefix="/api/v1/machines", tags=["Machines Master"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Analytics Dashboard"])
 app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["Factory Alerts"])
+app.include_router(predictions.router, prefix="/api/v1/predictions", tags=["ML Predictive Maintenance"])
 
 @app.get("/")
 def read_root():
