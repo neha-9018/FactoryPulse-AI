@@ -96,7 +96,8 @@ export default function App() {
 
 // 1. Simple Login Page
 function LoginView() {
-  const { login } = useAuth();
+  const { token, login } = useAuth();
+  if (token) return <Navigate to="/" replace />;
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState("engineer");
   const [email, setEmail] = useState("");
