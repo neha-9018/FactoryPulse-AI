@@ -14,13 +14,25 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-# SQLAlchemy DB Engine
-engine = create_engine(
-    DATABASE_URL,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True
-)
+# Self-healing database handler: try to connect to PostgreSQL, fallback to SQLite if offline
+try:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=5,
+        max_overflow=10,
+        pool_pre_ping=True,
+        connect_args={"connect_timeout": 2}
+    )
+    # Test connectivity
+    with engine.connect() as conn:
+        pass
+except Exception:
+    print("[WARNING] PostgreSQL database is offline. Falling back to local SQLite database: sqlite:///./ai_manufacturing.db")
+    DATABASE_URL = "sqlite:///./ai_manufacturing.db"
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
 
 # SQLAlchemy Session Local
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
