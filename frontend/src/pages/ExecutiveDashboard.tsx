@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../App";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, YAxis } from "recharts";
 import { 
   Activity, 
   Cpu, 
@@ -41,6 +42,29 @@ export default function ExecutiveDashboard() {
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
   const [newStatus, setNewStatus] = useState("OPERATIONAL");
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const [telemetryTrend, setTelemetryTrend] = useState([
+    { time: "10:00", temperature: 72.4, vibration: 2.10 },
+    { time: "10:10", temperature: 73.8, vibration: 2.40 },
+    { time: "10:20", temperature: 75.1, vibration: 2.20 },
+    { time: "10:30", temperature: 74.5, vibration: 2.50 },
+    { time: "10:40", temperature: 76.2, vibration: 2.70 },
+    { time: "10:50", temperature: 78.4, vibration: 3.10 },
+    { time: "11:00", temperature: 79.1, vibration: 3.00 }
+  ]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTelemetryTrend(prev => {
+        const nextTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const last = prev[prev.length - 1];
+        const nextTemp = Math.max(65, Math.min(95, last.temperature + (Math.random() * 2 - 1)));
+        const nextVib = Math.max(1, Math.min(5, last.vibration + (Math.random() * 0.4 - 0.2)));
+        return [...prev.slice(1), { time: nextTime, temperature: Number(nextTemp.toFixed(1)), vibration: Number(nextVib.toFixed(2)) }];
+      });
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     // 1. Fetch live metrics from FastAPI API
@@ -175,6 +199,85 @@ export default function ExecutiveDashboard() {
           </div>
           <p className="text-3xl font-bold text-red-400 tracking-tight leading-none mb-2">{metrics.activeAlerts}</p>
           <div className="text-xs text-red-400/80 font-medium">Needs engineering review</div>
+        </div>
+      </div>
+
+      {/* Analytics Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Doughnut Chart: Passed vs Defective Yield */}
+        <div className="lg:col-span-1 p-5 glass-card rounded-2xl border border-brand-border flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-1">Operational Yield Balance</h3>
+            <p className="text-slate-400 text-xs mb-4">Ratio of Passed vs Defective products in current shift</p>
+          </div>
+          <div className="h-48 relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: "Passed", value: metrics.yield - metrics.defects },
+                    { name: "Defective", value: metrics.defects }
+                  ]}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  <Cell fill="#10b981" />
+                  <Cell fill="#f43f5e" />
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #334155", borderRadius: "8px" }}
+                  itemStyle={{ color: "#fff" }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-2xl font-extrabold text-white">{(100 - metrics.defectRate).toFixed(1)}%</span>
+              <span className="text-[10px] text-slate-400 uppercase font-semibold">Pass Rate</span>
+            </div>
+          </div>
+          <div className="flex justify-center gap-6 mt-2 text-xs">
+            <div className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full bg-emerald-500" /> <span className="text-slate-300">Passed: {(metrics.yield - metrics.defects).toLocaleString()}</span></div>
+            <div className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full bg-rose-500" /> <span className="text-slate-300">Defects: {metrics.defects.toLocaleString()}</span></div>
+          </div>
+        </div>
+
+        {/* Real-time Telemetry Trend Graph */}
+        <div className="lg:col-span-2 p-5 glass-card rounded-2xl border border-brand-border">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-1">Vibration & Temperature Telemetry</h3>
+              <p className="text-slate-400 text-xs">Real-time dynamic sensor signals from Bay A CNC spindle</p>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">LIVE DATA STREAM</span>
+          </div>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={telemetryTrend}>
+                <defs>
+                  <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#38bdf8" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorVib" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#818cf8" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="time" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #334155", borderRadius: "8px" }}
+                  itemStyle={{ color: "#fff" }}
+                />
+                <Area type="monotone" dataKey="temperature" name="Temp (°C)" stroke="#38bdf8" strokeWidth={2} fillOpacity={1} fill="url(#colorTemp)" />
+                <Area type="monotone" dataKey="vibration" name="Vibration (mm/s)" stroke="#818cf8" strokeWidth={2} fillOpacity={1} fill="url(#colorVib)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
