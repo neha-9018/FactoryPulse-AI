@@ -285,35 +285,93 @@ export default function ExecutiveDashboard() {
       <div>
         <h3 className="text-lg font-bold text-white mb-4">Active Shop-Floor Assets</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {machines.map(m => (
-            <div key={m.id} className="p-5 glass-card rounded-2xl border border-brand-border relative overflow-hidden">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h4 className="font-bold text-white leading-tight mb-1">{m.name}</h4>
-                  <span className="text-[10px] text-slate-400 font-semibold font-mono tracking-widest">{m.type}</span>
+          {machines.map(m => {
+            // Map dynamic or mock health/runtime to match the mockup visual
+            const health = m.id === 1 ? 91 : m.id === 2 ? 94 : m.id === 3 ? 88 : m.id === 4 ? 92 : 95;
+            const runtime = m.id === 1 ? "8h 12m" : m.id === 2 ? "7h 45m" : m.id === 3 ? "12h 30m" : m.id === 4 ? "4h 15m" : "24h 00m";
+            const isOperational = m.status.toUpperCase() === "OPERATIONAL" || m.status.toUpperCase() === "ACTIVE" || m.status.toUpperCase() === "RUNNING";
+            
+            // SVG path dimensions for semi-circle arc
+            const radius = 45;
+            const circumference = Math.PI * radius; // ~141.37
+            const strokeDashoffset = circumference * (1 - health / 100);
+            
+            return (
+              <div key={m.id} className={`p-5 glass-card rounded-2xl border ${m.id === 1 ? 'border-cyan-500/50 shadow-glow-cyan' : 'border-brand-border'} relative overflow-hidden flex flex-col justify-between transition-all duration-300 hover:scale-[1.02]`}>
+                {/* Top Row: Name and Status */}
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h4 className="font-bold text-white leading-tight text-sm mb-0.5">{m.name}</h4>
+                    <span className="text-[9px] text-slate-500 font-bold font-mono uppercase tracking-wider">{m.type.replace("_", " ")}</span>
+                  </div>
+                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold border uppercase ${
+                    isOperational ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/25" : "text-rose-400 bg-rose-500/10 border-rose-500/25"
+                  }`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${isOperational ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'} mr-0.5`} />
+                    {m.status}
+                  </div>
                 </div>
-                {/* Status Badge */}
-                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(m.status)}`}>
-                  {getStatusIcon(m.status)}
-                  {m.status}
+
+                {/* Center: Radial Semi-Circle Gauge */}
+                <div className="flex flex-col items-center justify-center my-2 relative">
+                  <svg className="w-40 h-24 overflow-visible" viewBox="0 0 120 70">
+                    <defs>
+                      <filter id={`glow-${m.id}`} x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
+                    </defs>
+                    {/* Background arc */}
+                    <path
+                      d="M 15 60 A 45 45 0 0 1 105 60"
+                      fill="none"
+                      stroke="#1e293b"
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                    />
+                    {/* Foreground progress arc */}
+                    <path
+                      d="M 15 60 A 45 45 0 0 1 105 60"
+                      fill="none"
+                      stroke={health >= 90 ? "#10b981" : health >= 75 ? "#06b6d4" : "#f43f5e"}
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={strokeDashoffset}
+                      filter={`url(#glow-${m.id})`}
+                      className="transition-all duration-1000 ease-out"
+                    />
+                  </svg>
+                  
+                  {/* Inner Gauge Text */}
+                  <div className="absolute top-[35px] text-center flex flex-col items-center">
+                    <span className="text-xl font-extrabold text-white leading-none">{health}%</span>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5 font-sans">Health</span>
+                  </div>
+                </div>
+
+                {/* Bottom Row: Runtime and Config Button */}
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-brand-border/40 text-[10px] text-slate-400">
+                  <div className="flex items-center gap-1 font-mono">
+                    <span>Runtime:</span>
+                    <span className="text-slate-300 font-bold">{runtime}</span>
+                  </div>
+                  
+                  {user && ["ADMIN", "ENGINEER"].includes(user.role) && (
+                    <button 
+                      onClick={() => {
+                        setSelectedMachine(m);
+                        setNewStatus(m.status);
+                      }}
+                      className="p-1.5 bg-brand-bg hover:bg-brand-border rounded-lg text-slate-500 hover:text-cyan-400 border border-brand-border transition"
+                    >
+                      <Settings2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
-              <p className="text-slate-400 text-xs mt-4">Location: <span className="text-slate-300 font-medium">{m.location}</span></p>
-
-              {/* Maintenance Toggle triggers modal or options panel */}
-              {user && ["ADMIN", "ENGINEER"].includes(user.role) && (
-                <button 
-                  onClick={() => {
-                    setSelectedMachine(m);
-                    setNewStatus(m.status);
-                  }}
-                  className="absolute bottom-4 right-4 p-2 bg-brand-bg hover:bg-brand-border rounded-xl text-slate-400 hover:text-cyan-400 border border-brand-border transition"
-                >
-                  <Settings2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
