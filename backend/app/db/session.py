@@ -27,8 +27,8 @@ try:
     with engine.connect() as conn:
         pass
 except Exception:
-    print("[WARNING] PostgreSQL database is offline. Falling back to local SQLite database: sqlite:///./ai_manufacturing.db")
-    DATABASE_URL = "sqlite:///./ai_manufacturing.db"
+    print("[WARNING] PostgreSQL database is offline. Falling back to shared SQLite database: sqlite:///C:/Users/Nehay/.gemini/antigravity/scratch/ai_smart_factory/smart_factory.db")
+    DATABASE_URL = "sqlite:///C:/Users/Nehay/.gemini/antigravity/scratch/ai_smart_factory/smart_factory.db"
     engine = create_engine(
         DATABASE_URL,
         connect_args={"check_same_thread": False}

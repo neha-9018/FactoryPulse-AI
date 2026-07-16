@@ -271,7 +271,7 @@ def run_etl():
         # Extract files
         machines_data = extract_json("machines.json")
         sensor_df = extract_csv("sensor_data.csv")
-        production_df = extract_excel("production_data.xlsx")
+        production_df = extract_excel("production_data.xlsx", sheet_name="Shift Production")
         maintenance_df = extract_csv("maintenance_data.csv")
         
         # Truncate tables for fresh import (since this is Milestone 1 setup)

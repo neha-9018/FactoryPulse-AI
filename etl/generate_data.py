@@ -68,6 +68,7 @@ def save_machines_json():
 # 2. Sensor Data & Production Generation (CSV & Excel)
 def generate_factory_datasets(days=30, interval_minutes=2):
     start_time = datetime.utcnow() - timedelta(days=days)
+    start_time = start_time.replace(minute=0, second=0, microsecond=0)
     total_steps = int((days * 24 * 60) / interval_minutes)
     
     print(f"Generating {total_steps * len(MACHINES_CONFIG):,} rows of sensor readings across {days} days...")

@@ -58,8 +58,8 @@ export default function DashboardLayout() {
             <Factory className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="font-bold tracking-tight text-white leading-none">MEIDENSHA</h1>
-            <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">SmartFactory</span>
+            <h1 className="font-bold tracking-tight text-white leading-none">FACTORYPULSE</h1>
+            <span className="text-[10px] text-cyan-400 font-medium tracking-widest uppercase">AI Platform</span>
           </div>
         </div>
 
@@ -183,7 +183,7 @@ export default function DashboardLayout() {
               <div className="p-2 bg-cyan-500/10 rounded-lg text-cyan-400">
                 <Factory className="h-6 w-6" />
               </div>
-              <h1 className="font-bold tracking-tight text-white leading-none">MEIDENSHA</h1>
+              <h1 className="font-bold tracking-tight text-white leading-none">FACTORYPULSE</h1>
             </div>
             <nav className="flex-1 space-y-2">
               {filteredNav.map((item) => {
