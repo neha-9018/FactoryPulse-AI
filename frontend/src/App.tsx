@@ -7,6 +7,8 @@ import MaintenanceDashboard from "./pages/MaintenanceDashboard";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import QualityDashboard from "./pages/QualityDashboard";
 import AssistantDashboard from "./pages/AssistantDashboard";
+import ProfileDashboard from "./pages/ProfileDashboard";
+import ReportsDashboard from "./pages/ReportsDashboard";
 import { ShieldAlert, Cpu } from "lucide-react";
 
 // Auth Context
@@ -14,12 +16,15 @@ interface User {
   username: string;
   role: string;
   email: string;
+  empId?: string;
+  shiftZone?: string;
+  clearanceLevel?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (username: string, role: string, token: string) => void;
+  login: (username: string, role: string, token: string, extraData?: Partial<User>) => void;
   logout: () => void;
 }
 
@@ -38,8 +43,15 @@ export default function App() {
   });
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
 
-  const login = (username: string, role: string, userToken: string) => {
-    const userData = { username, role, email: `${username.toLowerCase()}@meidensha.com` };
+  const login = (username: string, role: string, userToken: string, extraData?: Partial<User>) => {
+    const userData = { 
+      username, 
+      role, 
+      email: extraData?.email || `${username.toLowerCase()}@meidensha.com`,
+      empId: extraData?.empId || "EMP-9081",
+      shiftZone: extraData?.shiftZone || "Day Shift (Bay A & B)",
+      clearanceLevel: extraData?.clearanceLevel || "Level 3 (Asset Diagnostics)"
+    };
     setUser(userData);
     setToken(userToken);
     localStorage.setItem("user", JSON.stringify(userData));
@@ -78,12 +90,14 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<ExecutiveDashboard />} />
-            <Route path="production" element={<ProductionDashboard />} />
-            <Route path="maintenance" element={<MaintenanceDashboard />} />
-            <Route path="analytics" element={<AnalyticsDashboard />} />
-            <Route path="quality" element={<QualityDashboard />} />
-            <Route path="assistant" element={<AssistantDashboard />} />
+            <Route index element={<ProtectedRoute roles={["ADMIN", "MANAGER", "ENGINEER"]}><ExecutiveDashboard /></ProtectedRoute>} />
+            <Route path="production" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "ENGINEER", "OPERATOR"]}><ProductionDashboard /></ProtectedRoute>} />
+            <Route path="maintenance" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "ENGINEER", "OPERATOR"]}><MaintenanceDashboard /></ProtectedRoute>} />
+            <Route path="analytics" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "ENGINEER", "OPERATOR"]}><AnalyticsDashboard /></ProtectedRoute>} />
+            <Route path="quality" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "ENGINEER", "OPERATOR"]}><QualityDashboard /></ProtectedRoute>} />
+            <Route path="assistant" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "ENGINEER", "OPERATOR"]}><AssistantDashboard /></ProtectedRoute>} />
+            <Route path="profile" element={<ProfileDashboard />} />
+            <Route path="reports" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "ENGINEER"]}><ReportsDashboard /></ProtectedRoute>} />
           </Route>
 
           <Route path="/unauthorized" element={<UnauthorizedView />} />
@@ -96,13 +110,22 @@ export default function App() {
 
 // 1. Simple Login Page
 function LoginView() {
-  const { token, login } = useAuth();
-  if (token) return <Navigate to="/" replace />;
+  const { token, user, login } = useAuth();
+  if (token && user) {
+    const targetPath = ["ADMIN", "MANAGER"].includes(user.role) ? "/" : "/maintenance";
+    return <Navigate to={targetPath} replace />;
+  }
   const [isRegister, setIsRegister] = useState(false);
-  const [username, setUsername] = useState("engineer");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("Password123");
+  const [password, setPassword] = useState("");
   const [role, setRole] = useState("ENGINEER");
+  
+  // Custom Registration Fields
+  const [empId, setEmpId] = useState("");
+  const [shiftZone, setShiftZone] = useState("Day Shift (Bay A & B)");
+  const [clearanceLevel, setClearanceLevel] = useState("Level 3 (Asset Diagnostics)");
+  
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -112,12 +135,48 @@ function LoginView() {
     setLoading(true);
 
     if (isRegister) {
-      // 1. REGISTRATION FLOW
+      // 1. STRICTOR VALIDATION RULES
+      const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+      if (!usernameRegex.test(username)) {
+        setError("Username must be 3-20 characters, containing only letters, numbers, or underscores (no spaces or email symbols).");
+        setLoading(false);
+        return;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        setError("Please enter a valid corporate email address (e.g., name@meidensha.com).");
+        setLoading(false);
+        return;
+      }
+
+      const empIdRegex = /^EMP-\d{4}$/;
+      if (!empIdRegex.test(empId)) {
+        setError("Employee ID must follow the standard format EMP-XXXX (e.g., EMP-2342).");
+        setLoading(false);
+        return;
+      }
+
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters long.");
+        setLoading(false);
+        return;
+      }
+
+      // 2. REGISTRATION FLOW
       try {
         const regResponse = await fetch("/api/v1/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, email: email || `${username}@meidensha.com`, password, role })
+          body: JSON.stringify({ 
+            username, 
+            email: email || `${username}@meidensha.com`, 
+            password, 
+            role,
+            emp_id: empId,
+            shift_zone: shiftZone,
+            clearance_level: clearanceLevel
+          })
         });
 
         if (regResponse.ok) {
@@ -130,7 +189,12 @@ function LoginView() {
 
           if (loginResponse.ok) {
             const data = await loginResponse.json();
-            login(data.user.username, data.user.role, data.access_token);
+            login(data.user.username, data.user.role, data.access_token, { 
+              email: data.user.email, 
+              empId: data.user.emp_id, 
+              shiftZone: data.user.shift_zone, 
+              clearanceLevel: data.user.clearance_level 
+            });
             return;
           }
         } else {
@@ -144,7 +208,7 @@ function LoginView() {
       }
       
       // Fallback/Simulated register login
-      login(username, role, "mock-offline-token-12345");
+      login(username, role, "mock-offline-token-12345", { email, empId, shiftZone, clearanceLevel });
       setLoading(false);
     } else {
       // 2. SIGN IN FLOW
@@ -157,17 +221,14 @@ function LoginView() {
 
         if (response.ok) {
           const data = await response.json();
-          login(data.user.username, data.user.role, data.access_token);
+          login(data.user.username, data.user.role, data.access_token, { 
+            email: data.user.email, 
+            empId: data.user.emp_id, 
+            shiftZone: data.user.shift_zone, 
+            clearanceLevel: data.user.clearance_level 
+          });
         } else {
-          setError("Incorrect username or password. Falling back to simulated login.");
-          setTimeout(() => {
-            const mockRole = username.toLowerCase().includes("admin") 
-              ? "ADMIN" 
-              : username.toLowerCase().includes("operator") 
-                ? "OPERATOR" 
-                : "ENGINEER";
-            login(username, mockRole, "mock-offline-token-12345");
-          }, 1500);
+          setError("Incorrect username or password. Please check your credentials and try again.");
         }
       } catch (err) {
         console.warn("Backend offline. Logging in with offline mock settings.");
@@ -244,6 +305,43 @@ function LoginView() {
                     <option value="MANAGER">MANAGER</option>
                   </select>
                 </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Employee ID</label>
+                  <input
+                    type="text"
+                    required
+                    value={empId}
+                    onChange={(e) => setEmpId(e.target.value)}
+                    className="mt-1 block w-full rounded-lg bg-brand-bg border border-brand-border px-3 py-2 text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 sm:text-sm"
+                    placeholder="EMP-2342"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Shift Zone Zone</label>
+                  <select
+                    value={shiftZone}
+                    onChange={(e) => setShiftZone(e.target.value)}
+                    className="mt-1 block w-full rounded-lg bg-brand-bg border border-brand-border px-3 py-2 text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 sm:text-sm"
+                  >
+                    <option value="Day Shift (Bay A & B)">Day Shift (Bay A & B)</option>
+                    <option value="Night Shift (Bay C & D)">Night Shift (Bay C & D)</option>
+                    <option value="Morning Shift (Bay E)">Morning Shift (Bay E)</option>
+                    <option value="All-Shift Authority">All-Shift Authority</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Clearance Level</label>
+                  <select
+                    value={clearanceLevel}
+                    onChange={(e) => setClearanceLevel(e.target.value)}
+                    className="mt-1 block w-full rounded-lg bg-brand-bg border border-brand-border px-3 py-2 text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 sm:text-sm"
+                  >
+                    <option value="Level 4 (System Owner)">Level 4 (System Owner)</option>
+                    <option value="Level 3 (Asset Diagnostics)">Level 3 (Asset Diagnostics)</option>
+                    <option value="Level 2 (General Clearance)">Level 2 (General Clearance)</option>
+                    <option value="Level 1 (Shop Floor Viewer)">Level 1 (Shop Floor Viewer)</option>
+                  </select>
+                </div>
               </>
             )}
 
@@ -274,6 +372,10 @@ function LoginView() {
               onClick={() => {
                 setIsRegister(!isRegister);
                 setError("");
+                setUsername("");
+                setEmail("");
+                setPassword("");
+                setEmpId("");
               }}
               className="w-full text-center text-xs text-cyan-400 hover:text-cyan-300 font-medium py-1 transition"
             >
@@ -282,10 +384,8 @@ function LoginView() {
           </div>
 
           {!isRegister && (
-            <div className="text-center text-xs text-slate-400 pt-2 border-t border-brand-border/50">
-              <span className="block font-medium">Standard Demo Logins (Offline Seeding Enabled):</span>
-              <span className="block mt-1 font-mono text-cyan-400">admin | engineer_satoh | operator_suzuki</span>
-              <span className="block font-mono text-slate-500">Password: admin123</span>
+            <div className="text-center text-[10px] text-slate-500 pt-3 border-t border-brand-border/30 tracking-wide">
+              <span>Authorized personnel only. Access logging is active. Contact corporate IT support for credentials.</span>
             </div>
           )}
         </form>

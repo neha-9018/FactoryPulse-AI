@@ -119,6 +119,27 @@ export default function QualityDashboard() {
       defect_type = "WRONG_DIMENSION";
     }
     
+    // Increment local state counters for offline fallback
+    setStats(prev => {
+      const isPass = status === "PASS";
+      const nextTotal = prev.total_inspected + 1;
+      const nextPassed = isPass ? prev.passed_count + 1 : prev.passed_count;
+      const nextFailed = !isPass ? prev.failed_count + 1 : prev.failed_count;
+      const nextDist = { ...prev.defect_distribution };
+      
+      if (defect_type !== "NONE" && defect_type in nextDist) {
+        nextDist[defect_type] = nextDist[defect_type] + 1;
+      }
+      
+      return {
+        total_inspected: nextTotal,
+        passed_count: nextPassed,
+        failed_count: nextFailed,
+        pass_rate: Math.round((nextPassed / nextTotal) * 10000) / 100,
+        defect_distribution: nextDist
+      };
+    });
+
     // Draw static local feedback
     setInspectionResult({
       status,

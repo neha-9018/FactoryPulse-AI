@@ -12,12 +12,33 @@ interface TelemetryPoint {
 }
 
 export default function AnalyticsDashboard() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [selectedMachine, setSelectedMachine] = useState(1);
+  
+  useEffect(() => {
+    if (user?.role === "OPERATOR") {
+      setSelectedMachine(1);
+    }
+  }, [user]);
   const [sensorType, setSensorType] = useState<"temperature" | "pressure" | "vibration" | "energy">("temperature");
   const [historyLimit, setHistoryLimit] = useState(30);
   const [telemetry, setTelemetry] = useState<TelemetryPoint[]>([]);
   const [stats, setStats] = useState({ avg: 0, max: 0, min: 0 });
+
+  const exportToCSV = () => {
+    if (telemetry.length === 0) return;
+    const headers = ["Timestamp", "Temperature(C)", "Pressure(kPa)", "Vibration(mm/s)", "Energy(kWh)"];
+    const rows = telemetry.map(t => [t.time, t.temperature, t.pressure, t.vibration, t.energy]);
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `sensor_telemetry_machine_${selectedMachine}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Pre-seed mock sensor data for fallback (derived from CNC Milling simulator rules)
   const generateMockTelemetry = (machineId: number, limit: number): TelemetryPoint[] => {
@@ -96,9 +117,17 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white font-sans">Diagnostics Analytics</h2>
-        <p className="text-slate-400 text-sm">Deep-dive analysis of real-time machine telemetry logs</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-white font-sans">Diagnostics Analytics</h2>
+          <p className="text-slate-400 text-sm">Deep-dive analysis of real-time machine telemetry logs</p>
+        </div>
+        {user?.role === "OPERATOR" && (
+          <div className="px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded-xl text-xs font-semibold flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse" />
+            <span>Operator Limited Mode: Visualizing Assigned CNC Spindle Only</span>
+          </div>
+        )}
       </div>
 
       {/* Control Filters Toolbar */}
@@ -112,7 +141,8 @@ export default function AnalyticsDashboard() {
           <select
             value={selectedMachine}
             onChange={(e) => setSelectedMachine(Number(e.target.value))}
-            className="rounded-lg bg-brand-bg border border-brand-border px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400"
+            disabled={user?.role === "OPERATOR"}
+            className="rounded-lg bg-brand-bg border border-brand-border px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value={1}>CNC Milling Alpha</option>
             <option value={2}>Robot Arm Beta</option>
@@ -134,7 +164,7 @@ export default function AnalyticsDashboard() {
           </select>
         </div>
 
-        {/* History Limit */}
+        {/* History Limit & Export */}
         <div className="flex gap-2">
           {[15, 30, 60].map(l => (
             <button
@@ -149,6 +179,13 @@ export default function AnalyticsDashboard() {
               Last {l} intervals
             </button>
           ))}
+          <button
+            onClick={exportToCSV}
+            className="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500 transition"
+            title="Export telemetry logs to CSV file"
+          >
+            Export CSV
+          </button>
         </div>
       </div>
 

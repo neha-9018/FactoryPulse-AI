@@ -18,7 +18,7 @@ interface ShiftData {
 }
 
 export default function ProductionDashboard() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [dailyData, setDailyData] = useState<DailyData[]>([
     { date: "2026-07-08", yield: 15400, defects: 120, defect_rate: 0.78 },
     { date: "2026-07-09", yield: 16100, defects: 140, defect_rate: 0.87 },
@@ -56,11 +56,23 @@ export default function ProductionDashboard() {
       .catch(err => console.log("Failed to load shift aggregates. Using simulated data."));
   }, [token]);
 
+  const displayedShiftData = user?.role === "OPERATOR"
+    ? shiftData.filter(s => s.shift === "MORNING")
+    : shiftData;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white font-sans">Production Analytics</h2>
-        <p className="text-slate-400 text-sm">Monitor plant throughput, yield quality, and shifts OEE metrics</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-white font-sans">Production Analytics</h2>
+          <p className="text-slate-400 text-sm">Monitor plant throughput, yield quality, and shifts OEE metrics</p>
+        </div>
+        {user?.role === "OPERATOR" && (
+          <div className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl text-xs font-semibold flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+            <span>Operator View Filter: Displaying Current Shift Only (Morning Shift Zone)</span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -117,7 +129,7 @@ export default function ProductionDashboard() {
       <div className="p-5 glass-card rounded-2xl border border-brand-border">
         <h3 className="font-bold text-white text-sm uppercase tracking-wider mb-6">Weekly Shift yield performance comparison</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {shiftData.map(s => (
+          {displayedShiftData.map(s => (
             <div key={s.shift} className="p-4 bg-brand-bg/50 border border-brand-border rounded-xl">
               <div className="flex justify-between mb-3 border-b border-brand-border pb-2">
                 <span className="font-bold text-slate-300 text-xs font-mono">{s.shift} SHIFT</span>

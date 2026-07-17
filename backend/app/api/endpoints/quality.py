@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from backend.app.api import deps
-from backend.app.db.models import QualityInspection, Production
+from backend.app.db.models import QualityInspection, Production, Machine, Alert
 from computer_vision.inspector import QualityInspector
 
 router = APIRouter()
@@ -77,11 +77,33 @@ def inspect_part_image(
     )
     db.add(inspection_record)
     
-    # 5. Optional: If fail, increment defect count on production shift log
-    if cv_result["status"] == "FAIL" and production_id:
-        prod = db.query(Production).filter(Production.id == production_id).first()
-        if prod:
-            prod.defect_count += 1
+    # 5. Optional: If fail, increment defect count on production shift log & check for PLC auto-stop limits
+    if cv_result["status"] == "FAIL":
+        if production_id:
+            prod = db.query(Production).filter(Production.id == production_id).first()
+            if prod:
+                prod.defect_count += 1
+                
+        # Retrieve the last 2 quality inspections to check if we hit 3 consecutive failures
+        recent = db.query(QualityInspection).filter(
+            QualityInspection.machine_id == machine_id
+        ).order_by(QualityInspection.timestamp.desc()).limit(2).all()
+        
+        if len(recent) >= 2 and all(r.inspection_status == "FAIL" for r in recent):
+            # Trigger PLC Auto-Stop (set status to OFFLINE)
+            m = db.query(Machine).filter(Machine.id == machine_id).first()
+            if m and m.status != "OFFLINE":
+                m.status = "OFFLINE"
+                
+                # Add PLC auto-stop alarm alert
+                plc_alert = Alert(
+                    machine_id=machine_id,
+                    timestamp=datetime.utcnow(),
+                    alert_type="PLC AUTO-STOP",
+                    message=f"CRITICAL: Spindle halted automatically on {m.name} due to 3 consecutive defects.",
+                    is_active=True
+                )
+                db.add(plc_alert)
             
     db.commit()
     db.refresh(inspection_record)

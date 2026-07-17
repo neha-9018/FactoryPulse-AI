@@ -19,6 +19,7 @@ class MachineOut(BaseModel):
     status: str
     installation_date: Optional[str] = None
     created_at: datetime
+    health_score: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -48,8 +49,12 @@ def read_machines(
     db: Session = Depends(deps.get_db),
     current_user: Any = Depends(deps.get_current_user)
 ) -> Any:
-    """Retrieve machines lists."""
+    """Retrieve machines lists with dynamic health scores."""
+    from backend.app.db.models import Prediction
     machines = db.query(Machine).all()
+    for m in machines:
+        latest_pred = db.query(Prediction).filter(Prediction.machine_id == m.id).order_by(Prediction.timestamp.desc()).first()
+        m.health_score = int(latest_pred.health_score) if latest_pred else None
     return machines
 
 @router.get("/{machine_id}", response_model=MachineOut)
@@ -58,10 +63,14 @@ def read_machine(
     db: Session = Depends(deps.get_db),
     current_user: Any = Depends(deps.get_current_user)
 ) -> Any:
-    """Retrieve machine profile by ID."""
+    """Retrieve machine profile by ID with health score."""
+    from backend.app.db.models import Prediction
     machine = db.query(Machine).filter(Machine.id == machine_id).first()
     if not machine:
         raise HTTPException(status_code=404, detail="Machine not found")
+    
+    latest_pred = db.query(Prediction).filter(Prediction.machine_id == machine.id).order_by(Prediction.timestamp.desc()).first()
+    machine.health_score = int(latest_pred.health_score) if latest_pred else None
     return machine
 
 @router.put("/{machine_id}/status", response_model=MachineOut)
@@ -71,7 +80,8 @@ def update_machine_status(
     db: Session = Depends(deps.get_db),
     current_user: Any = Depends(deps.RoleChecker(["ADMIN", "ENGINEER"]))
 ) -> Any:
-    """Update a machine's operational status. Restricted to ADMIN and ENGINEER roles."""
+    """Update a machine's operational status and return updated details."""
+    from backend.app.db.models import Prediction
     machine = db.query(Machine).filter(Machine.id == machine_id).first()
     if not machine:
         raise HTTPException(status_code=404, detail="Machine not found")
@@ -83,6 +93,9 @@ def update_machine_status(
     machine.status = status_upper
     db.commit()
     db.refresh(machine)
+    
+    latest_pred = db.query(Prediction).filter(Prediction.machine_id == machine.id).order_by(Prediction.timestamp.desc()).first()
+    machine.health_score = int(latest_pred.health_score) if latest_pred else None
     return machine
 
 @router.get("/{machine_id}/sensors", response_model=List[SensorDataOut])

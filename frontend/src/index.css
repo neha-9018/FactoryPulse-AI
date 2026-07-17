@@ -2,10 +2,111 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Default: Dark Theme */
+  --brand-bg: #0b0f19;
+  --brand-card: #151c2c;
+  --brand-border: #202a40;
+  --brand-accent: #22d3ee;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+}
+
+.light-theme {
+  /* High-Contrast Accessible Light Theme colors */
+  --brand-bg: #f8fafc;
+  --brand-card: #ffffff;
+  --brand-border: #64748b; /* Darker, high-contrast border lines */
+  --brand-accent: #0284c7; /* Sky blue (high contrast variant) */
+  --text-primary: #000000; /* Pure black for maximum readability */
+  --text-secondary: #0f172a; /* Deep charcoal for sub-elements */
+}
+
 @layer base {
   body {
-    @apply bg-brand-bg text-slate-100 font-sans;
+    background-color: var(--brand-bg);
+    color: var(--text-primary);
+    transition: background-color 0.3s, color 0.3s;
+    @apply font-sans;
   }
+}
+
+/* Accessibility & Visual Enhancements for Light/Bright Mode */
+.light-theme body {
+  background-color: #f8fafc;
+  color: #000000;
+}
+
+/* Enforce maximum contrast for text */
+.light-theme .text-white {
+  color: #000000 !important;
+}
+
+.light-theme .text-slate-100 {
+  color: #000000 !important;
+}
+
+.light-theme .text-slate-300 {
+  color: #0f172a !important;
+}
+
+.light-theme .text-slate-400 {
+  color: #1e293b !important;
+}
+
+/* Bold headers and text nodes for visibility support */
+.light-theme h1,
+.light-theme h2,
+.light-theme h3,
+.light-theme h4,
+.light-theme h5,
+.light-theme h6 {
+  color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+.light-theme p,
+.light-theme span,
+.light-theme td,
+.light-theme th,
+.light-theme label,
+.light-theme select,
+.light-theme input {
+  font-weight: 600 !important; /* Bolder font weights to ease reading */
+}
+
+/* Thick high-contrast borders for card containers */
+.light-theme .glass-card {
+  background: #ffffff !important;
+  border-color: #64748b !important;
+  border-width: 2px !important; /* Thick borders for clarity */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.light-theme .glass-panel {
+  background: #ffffff !important;
+  border-color: #64748b !important;
+  border-width: 2px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15) !important;
+}
+
+.light-theme .bg-brand-bg {
+  background-color: #f1f5f9 !important;
+}
+
+/* Thick high-contrast borders for inputs and dropdowns */
+.light-theme select,
+.light-theme input,
+.light-theme textarea {
+  background-color: #ffffff !important;
+  border-color: #475569 !important;
+  border-width: 2px !important;
+  color: #000000 !important;
+}
+
+/* Active navigation links shadow and borders */
+.light-theme .shadow-glow {
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.25) !important;
 }
 
 /* Custom Scrollbars */
@@ -14,32 +115,12 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b0f19;
+  background: var(--brand-bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #202a40;
+  background: var(--brand-border);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #22d3ee;
-}
-
-/* Glassmorphism Classes */
-.glass-panel {
-  background: rgba(21, 28, 44, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(32, 42, 64, 0.5);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
-}
-
-.glass-card {
-  background: rgba(21, 28, 44, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.glass-card:hover {
-  border-color: rgba(34, 211, 238, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 15px rgba(34, 211, 238, 0.05);
+  background: var(--brand-accent);
 }

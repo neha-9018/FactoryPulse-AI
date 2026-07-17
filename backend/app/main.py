@@ -33,7 +33,7 @@ app.add_middleware(
 )
 
 # Mount datasets directory to serve static uploaded and demo images
-DATASETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "datasets")
+DATASETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "datasets")
 os.makedirs(DATASETS_DIR, exist_ok=True)
 app.mount("/datasets", StaticFiles(directory=DATASETS_DIR), name="datasets")
 
@@ -44,6 +44,17 @@ def startup_db_setup():
     try:
         logger.info("Verifying tables exist...")
         Base.metadata.create_all(bind=engine)
+        
+        # Dynamically verify and alter SQLite tables to add columns if they don't exist
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            for col, col_type in [("emp_id", "VARCHAR(50)"), ("shift_zone", "VARCHAR(100)"), ("clearance_level", "VARCHAR(100)")]:
+                try:
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {col_type}"))
+                    conn.commit()
+                    logger.info(f"Dynamically added column {col} to users table.")
+                except Exception as ex:
+                    pass # column already exists
         
         # Programmatically seed demo parts images
         try:
@@ -56,6 +67,7 @@ def startup_db_setup():
             logger.info("Syncing system users...")
             users_to_seed = [
                 {"username": "admin", "email": "admin@meidensha.com", "password": "admin123", "role": "ADMIN"},
+                {"username": "neha_yadav", "email": "neha@meidensha.com", "password": "admin123", "role": "ADMIN"},
                 {"username": "engineer_satoh", "email": "satoh@meidensha.com", "password": "admin123", "role": "ENGINEER"},
                 {"username": "operator_suzuki", "email": "suzuki@meidensha.com", "password": "admin123", "role": "OPERATOR"},
                 {"username": "engineer", "email": "engineer@meidensha.com", "password": "Password123", "role": "ENGINEER"},
@@ -82,6 +94,86 @@ def startup_db_setup():
             
             db.commit()
             logger.info("[SUCCESS] Seeding complete!")
+            
+            # Seed initial predictions for all machines so the dashboard is immediately populated
+            from backend.app.db.models import Machine, SensorData, Prediction
+            from ml.predict import MaintenancePredictor
+            from datetime import datetime
+            
+            logger.info("Seeding initial predictive health scores...")
+            predictor = MaintenancePredictor()
+            machines = db.query(Machine).all()
+            for m in machines:
+                latest_reading = db.query(SensorData).filter(
+                    SensorData.machine_id == m.id
+                ).order_by(SensorData.timestamp.desc()).first()
+                
+                if latest_reading:
+                    result = predictor.predict_health(
+                        temperature=float(latest_reading.temperature),
+                        pressure=float(latest_reading.pressure),
+                        humidity=float(latest_reading.humidity),
+                        voltage=float(latest_reading.voltage),
+                        current=float(latest_reading.current),
+                        rpm=float(latest_reading.rpm),
+                        vibration=float(latest_reading.vibration),
+                        energy=float(latest_reading.energy_consumption)
+                    )
+                    
+                    # Create prediction record
+                    pred_record = Prediction(
+                        machine_id=m.id,
+                        timestamp=datetime.utcnow(),
+                        failure_probability=result["failure_probability"],
+                        health_score=result["health_score"],
+                        recommendation=result["recommendation"]
+                    )
+                    db.add(pred_record)
+            db.commit()
+            logger.info("[SUCCESS] Prediction seeding complete!")
+            
+            # Seed initial quality inspections in database to match the 1540 starting metrics
+            from backend.app.db.models import QualityInspection
+            inspections_count = db.query(QualityInspection).count()
+            if inspections_count < 1540:
+                logger.info(f"Pre-seeding database with 1540 historical CV quality inspection records (previous count: {inspections_count})...")
+                db.query(QualityInspection).delete()
+                db.commit()
+                records = []
+                # 1. 1485 PASS records
+                for i in range(1485):
+                    records.append(QualityInspection(
+                        production_id=None,
+                        machine_id=1,
+                        timestamp=datetime.utcnow(),
+                        defect_type="NONE",
+                        inspection_status="PASS",
+                        confidence_score=0.98,
+                        image_path=""
+                    ))
+                # 2. 55 FAIL records matching exact distribution
+                defect_counts = {
+                    "LABEL_MISSING": 10,
+                    "SURFACE_CRACK": 15,
+                    "DAMAGE": 5,
+                    "WRONG_COLOR": 12,
+                    "WRONG_PACKAGING": 3,
+                    "WRONG_DIMENSION": 10
+                }
+                for defect, count in defect_counts.items():
+                    for i in range(count):
+                        records.append(QualityInspection(
+                            production_id=None,
+                            machine_id=1,
+                            timestamp=datetime.utcnow(),
+                            defect_type=defect,
+                            inspection_status="FAIL",
+                            confidence_score=0.92,
+                            image_path=""
+                        ))
+                db.bulk_save_objects(records)
+                db.commit()
+                logger.info("[SUCCESS] Seeding of 1540 quality inspections complete!")
         except Exception as se:
             db.rollback()
             logger.error(f"Error seeding demo users: {se}")

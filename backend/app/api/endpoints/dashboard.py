@@ -69,26 +69,33 @@ def get_production_chart_data(
     db: Session = Depends(deps.get_db),
     current_user: Any = Depends(deps.get_current_user)
 ) -> List[Dict[str, Any]]:
-    """Retrieve daily yield and defect aggregates for graphical chart analysis."""
+    """Retrieve daily yield and defect aggregates for graphical chart analysis (dialect-safe)."""
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
     
-    # Query production logs grouped by date
+    # Dialect-specific date grouping (SQLite vs PostgreSQL)
+    if db.bind.dialect.name == "sqlite":
+        date_group = func.strftime("%Y-%m-%d", Production.timestamp).label("date")
+    else:
+        date_group = func.date_trunc("day", Production.timestamp).label("date")
+    
     results = db.query(
-        func.date_trunc("day", Production.timestamp).label("date"),
+        date_group,
         func.sum(Production.production_count).label("production_yield"),
         func.sum(Production.defect_count).label("defects")
     ).filter(
         Production.timestamp >= seven_days_ago
     ).group_by(
-        func.date_trunc("day", Production.timestamp)
+        date_group
     ).order_by(
-        func.date_trunc("day", Production.timestamp)
+        date_group
     ).all()
     
     chart_data = []
     for r in results:
+        # Handle string return format for SQLite and datetime for PostgreSQL
+        date_str = r.date if isinstance(r.date, str) else r.date.strftime("%Y-%m-%d")
         chart_data.append({
-            "date": r.date.strftime("%Y-%m-%d"),
+            "date": date_str,
             "yield": int(r.production_yield or 0),
             "defects": int(r.defects or 0),
             "defect_rate": round(((r.defects or 0) / (r.production_yield or 1)) * 100, 2)

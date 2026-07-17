@@ -1,0 +1,20 @@
+machine_id,log_date,maintenance_type,description,technician,duration_hours,cost
+1,2026-06-19 16:00:00,PREVENTIVE,Routine preventive maintenance and parts replacement for CNC Milling Machine Alpha.,Kenji Sato,4.8,622.1
+1,2026-07-07 16:00:00,PREVENTIVE,Routine preventive maintenance and parts replacement for CNC Milling Machine Alpha.,Hiroshi Tanaka,4.2,482.82
+1,2026-07-02 16:00:00,PREVENTIVE,Routine preventive maintenance and parts replacement for CNC Milling Machine Alpha.,Takashi Oda,4.0,901.02
+1,2026-06-23 16:00:00,CORRECTIVE,Routine corrective maintenance and parts replacement for CNC Milling Machine Alpha.,Hiroshi Tanaka,4.2,676.57
+2,2026-06-29 16:00:00,CORRECTIVE,Routine corrective maintenance and parts replacement for Industrial Robot Arm Beta.,Kenji Sato,2.8,671.6
+2,2026-06-18 16:00:00,CORRECTIVE,Routine corrective maintenance and parts replacement for Industrial Robot Arm Beta.,Kenji Sato,1.9,606.21
+2,2026-07-09 16:00:00,CORRECTIVE,Routine corrective maintenance and parts replacement for Industrial Robot Arm Beta.,Yuki Watanabe,3.9,829.07
+2,2026-07-06 16:00:00,CORRECTIVE,Routine corrective maintenance and parts replacement for Industrial Robot Arm Beta.,Hiroshi Tanaka,4.1,648.54
+3,2026-06-18 16:00:00,PREVENTIVE,Routine preventive maintenance and parts replacement for Injection Molding Gamma.,Yuki Watanabe,5.4,857.05
+3,2026-06-21 16:00:00,CORRECTIVE,Routine corrective maintenance and parts replacement for Injection Molding Gamma.,Kenji Sato,3.1,774.16
+3,2026-07-05 16:00:00,PREVENTIVE,Routine preventive maintenance and parts replacement for Injection Molding Gamma.,Yuki Watanabe,3.9,663.74
+4,2026-07-08 16:00:00,PREVENTIVE,Routine preventive maintenance and parts replacement for Hydraulic Press Delta.,Hiroshi Tanaka,4.6,1049.8
+4,2026-06-17 16:00:00,CORRECTIVE,Routine corrective maintenance and parts replacement for Hydraulic Press Delta.,Yuki Watanabe,3.3,744.54
+4,2026-06-22 16:00:00,CORRECTIVE,Routine corrective maintenance and parts replacement for Hydraulic Press Delta.,Yuki Watanabe,3.3,758.8
+4,2026-06-20 16:00:00,PREVENTIVE,Routine preventive maintenance and parts replacement for Hydraulic Press Delta.,Takashi Oda,4.9,975.67
+5,2026-06-28 16:00:00,CORRECTIVE,Routine corrective maintenance and parts replacement for Packaging Conveyor Epsilon.,Kenji Sato,2.5,678.38
+5,2026-07-10 16:00:00,PREVENTIVE,Routine preventive maintenance and parts replacement for Packaging Conveyor Epsilon.,Takashi Oda,5.4,653.77
+5,2026-07-05 16:00:00,PREVENTIVE,Routine preventive maintenance and parts replacement for Packaging Conveyor Epsilon.,Yuki Watanabe,3.2,676.7
+5,2026-07-03 16:00:00,PREVENTIVE,Routine preventive maintenance and parts replacement for Packaging Conveyor Epsilon.,Yuki Watanabe,4.6,858.8

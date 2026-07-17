@@ -8,13 +8,13 @@ export default {
     extend: {
       colors: {
         brand: {
-          bg: "#0b0f19",      // Premium Dark Slate
-          card: "#151c2c",    // Card background
-          border: "#202a40",  // Subtly lighter borders
-          accent: "#22d3ee",  // Cyan neon highlight
-          success: "#10b981", // Emerald
-          warning: "#f59e0b", // Amber
-          danger: "#ef4444"   // Soft red
+          bg: "var(--brand-bg)",      
+          card: "var(--brand-card)",    
+          border: "var(--brand-border)",  
+          accent: "var(--brand-accent)",  
+          success: "#10b981", 
+          warning: "#f59e0b", 
+          danger: "#ef4444"   
         }
       },
       fontFamily: {

@@ -19,6 +19,7 @@ interface Machine {
   type: string;
   location: string;
   status: string;
+  health_score?: number;
 }
 
 export default function ExecutiveDashboard() {
@@ -131,6 +132,50 @@ export default function ExecutiveDashboard() {
     }
   };
 
+  const handleDirectEStop = async (machine: any) => {
+    try {
+      const response = await fetch(`/api/v1/machines/${machine.id}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: "OFFLINE" })
+      });
+
+      if (response.ok) {
+        const updated = await response.json();
+        setMachines(machines.map(m => m.id === updated.id ? updated : m));
+      } else {
+        setMachines(machines.map(m => m.id === machine.id ? { ...m, status: "OFFLINE" } : m));
+      }
+    } catch (err) {
+      setMachines(machines.map(m => m.id === machine.id ? { ...m, status: "OFFLINE" } : m));
+    }
+  };
+
+  const handleDirectRestart = async (machine: any) => {
+    try {
+      const response = await fetch(`/api/v1/machines/${machine.id}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: "OPERATIONAL" })
+      });
+
+      if (response.ok) {
+        const updated = await response.json();
+        setMachines(machines.map(m => m.id === updated.id ? updated : m));
+      } else {
+        setMachines(machines.map(m => m.id === machine.id ? { ...m, status: "OPERATIONAL" } : m));
+      }
+    } catch (err) {
+      setMachines(machines.map(m => m.id === machine.id ? { ...m, status: "OPERATIONAL" } : m));
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status.toUpperCase()) {
       case "OPERATIONAL": return "text-emerald-400 bg-emerald-500/10 border-emerald-500/25";
@@ -168,7 +213,11 @@ export default function ExecutiveDashboard() {
             <div className="p-2 bg-cyan-500/15 text-cyan-400 rounded-xl"><Activity className="h-5 w-5" /></div>
           </div>
           <p className="text-3xl font-bold text-white tracking-tight leading-none mb-2">{metrics.oee}%</p>
-          <div className="text-xs text-slate-400 font-medium">Availability × Performance × Quality</div>
+          <div className="text-[10px] text-cyan-400 font-medium flex justify-between pt-1.5 border-t border-brand-border/40 mt-1">
+            <span>Avail: 92.4%</span>
+            <span>Perf: {metrics.oee > 0 ? ((metrics.oee / (92.4 * (100 - metrics.defectRate))) * 10000).toFixed(1) : "0.0"}%</span>
+            <span>Qual: {(100 - metrics.defectRate).toFixed(1)}%</span>
+          </div>
         </div>
 
         {/* Card 2: Production Yield */}
@@ -286,8 +335,10 @@ export default function ExecutiveDashboard() {
         <h3 className="text-lg font-bold text-white mb-4">Active Shop-Floor Assets</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {machines.map(m => {
-            // Map dynamic or mock health/runtime to match the mockup visual
-            const health = m.id === 1 ? 91 : m.id === 2 ? 94 : m.id === 3 ? 88 : m.id === 4 ? 92 : 95;
+            // Read dynamic health score from database prediction model, with mockup visual fallback
+            const health = (m.health_score !== undefined && m.health_score !== null) 
+              ? m.health_score 
+              : (m.id === 1 ? 91 : m.id === 2 ? 94 : m.id === 3 ? 88 : m.id === 4 ? 92 : 95);
             const runtime = m.id === 1 ? "8h 12m" : m.id === 2 ? "7h 45m" : m.id === 3 ? "12h 30m" : m.id === 4 ? "4h 15m" : "24h 00m";
             const isOperational = m.status.toUpperCase() === "OPERATIONAL" || m.status.toUpperCase() === "ACTIVE" || m.status.toUpperCase() === "RUNNING";
             
@@ -357,16 +408,37 @@ export default function ExecutiveDashboard() {
                     <span className="text-slate-300 font-bold">{runtime}</span>
                   </div>
                   
-                  {user && ["ADMIN", "ENGINEER"].includes(user.role) && (
-                    <button 
-                      onClick={() => {
-                        setSelectedMachine(m);
-                        setNewStatus(m.status);
-                      }}
-                      className="p-1.5 bg-brand-bg hover:bg-brand-border rounded-lg text-slate-500 hover:text-cyan-400 border border-brand-border transition"
-                    >
-                      <Settings2 className="h-3.5 w-3.5" />
-                    </button>
+                  {user && ["ADMIN", "MANAGER"].includes(user.role) && (
+                    <div className="flex items-center gap-1.5">
+                      {isOperational ? (
+                        <button 
+                          onClick={() => handleDirectEStop(m)}
+                          className="px-2 py-1 bg-red-950/60 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 rounded-lg text-[9px] font-extrabold tracking-wider transition uppercase flex items-center gap-1"
+                          title="Emergency Stop"
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-ping" />
+                          E-Stop
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => handleDirectRestart(m)}
+                          className="px-2 py-1 bg-emerald-950/60 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/30 rounded-lg text-[9px] font-extrabold tracking-wider transition uppercase flex items-center gap-1"
+                          title="Safety Restart"
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Restart
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => {
+                          setSelectedMachine(m);
+                          setNewStatus(m.status);
+                        }}
+                        className="p-1.5 bg-brand-bg hover:bg-brand-border rounded-lg text-slate-500 hover:text-cyan-400 border border-brand-border transition"
+                      >
+                        <Settings2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../App";
 import { 
@@ -14,7 +14,11 @@ import {
   Menu,
   X,
   Camera,
-  MessageSquare
+  MessageSquare,
+  HelpCircle,
+  Sun,
+  Moon,
+  FileText
 } from "lucide-react";
 
 export default function DashboardLayout() {
@@ -23,20 +27,90 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   
-  // Dummy active alerts for notification drawer (representing real-time anomalies)
-  const [alerts] = useState([
-    { id: 1, type: "OVERHEAT", machine: "CNC Milling Alpha", severity: "CRITICAL", msg: "Core temp reached 98.4°C" },
-    { id: 2, type: "VIBRATION", machine: "Hydraulic Press Delta", severity: "WARNING", msg: "Vibration values exceeding 5.2mm/s" }
-  ]);
+  const [themeMode, setThemeMode] = useState<"dark" | "light">(() => {
+    return (localStorage.getItem("theme") as "dark" | "light") || "dark";
+  });
+
+  useEffect(() => {
+    if (themeMode === "light") {
+      document.body.classList.add("light-theme");
+    } else {
+      document.body.classList.remove("light-theme");
+    }
+    localStorage.setItem("theme", themeMode);
+  }, [themeMode]);
+
+  const toggleTheme = () => {
+    setThemeMode(prev => prev === "dark" ? "light" : "dark");
+  };
+  
+  const [avatarImg, setAvatarImg] = useState<string | null>(() => {
+    const saved = localStorage.getItem("user");
+    if (saved) {
+      return JSON.parse(saved).profileImage || null;
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem("user");
+      if (saved) {
+        setAvatarImg(JSON.parse(saved).profileImage || null);
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+  
+  const [alerts, setAlerts] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchAlerts = () => {
+      fetch("/api/v1/alerts?status=ACTIVE&limit=5", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            const formatted = data.map(a => ({
+              id: a.id,
+              type: a.alert_type,
+              machine: a.machine_id === 1 
+                ? "CNC Milling Alpha" 
+                : a.machine_id === 2 
+                  ? "Robot Arm Beta" 
+                  : a.machine_id === 3 
+                    ? "Injection Molding Gamma" 
+                    : a.machine_id === 4 
+                      ? "Hydraulic Press Delta" 
+                      : "Conveyor Epsilon",
+              severity: a.severity,
+              msg: a.message
+            }));
+            setAlerts(formatted);
+          }
+        })
+        .catch(err => console.log("Failed to load alerts: ", err));
+    };
+
+    fetchAlerts();
+    const interval = setInterval(fetchAlerts, 5000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const navItems = [
-    { name: "Executive View", path: "/", icon: LayoutDashboard, roles: ["ADMIN", "ENGINEER", "OPERATOR", "MANAGER"] },
-    { name: "Production logs", path: "/production", icon: BarChart3, roles: ["ADMIN", "ENGINEER", "MANAGER"] },
-    { name: "Quality Control", path: "/quality", icon: Camera, roles: ["ADMIN", "ENGINEER", "OPERATOR"] },
-    { name: "Maintenance AI", path: "/maintenance", icon: Wrench, roles: ["ADMIN", "ENGINEER", "OPERATOR"] },
-    { name: "Custom Analytics", path: "/analytics", icon: LineChart, roles: ["ADMIN", "ENGINEER", "MANAGER"] },
-    { name: "AI Assistant", path: "/assistant", icon: MessageSquare, roles: ["ADMIN", "ENGINEER", "OPERATOR", "MANAGER"] }
+    { name: "Executive View", path: "/", icon: LayoutDashboard, roles: ["ADMIN", "MANAGER", "ENGINEER"] },
+    { name: "Production Analytics", path: "/production", icon: BarChart3, roles: ["ADMIN", "MANAGER", "ENGINEER", "OPERATOR"] },
+    { name: "Quality Control", path: "/quality", icon: Camera, roles: ["ADMIN", "MANAGER", "ENGINEER", "OPERATOR"] },
+    { name: "Maintenance AI", path: "/maintenance", icon: Wrench, roles: ["ADMIN", "MANAGER", "ENGINEER", "OPERATOR"] },
+    { name: "Custom Analytics", path: "/analytics", icon: LineChart, roles: ["ADMIN", "MANAGER", "ENGINEER", "OPERATOR"] },
+    { name: "AI Assistant", path: "/assistant", icon: MessageSquare, roles: ["ADMIN", "MANAGER", "ENGINEER", "OPERATOR"] },
+    { name: "Corporate Reports", path: "/reports", icon: FileText, roles: ["ADMIN", "MANAGER", "ENGINEER"] }
   ];
 
   const handleLogout = () => {
@@ -58,7 +132,7 @@ export default function DashboardLayout() {
             <Factory className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="font-bold tracking-tight text-white leading-none">FACTORYPULSE</h1>
+            <h1 className="font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 leading-none">FACTORYPULSE</h1>
             <span className="text-[10px] text-cyan-400 font-medium tracking-widest uppercase">AI Platform</span>
           </div>
         </div>
@@ -73,7 +147,7 @@ export default function DashboardLayout() {
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                   active 
-                    ? "bg-cyan-600 text-white shadow-glow" 
+                    ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-glow" 
                     : "text-slate-400 hover:bg-brand-border hover:text-white"
                 }`}
               >
@@ -86,18 +160,22 @@ export default function DashboardLayout() {
 
         {/* Profile Card & Logout */}
         <div className="p-4 border-t border-brand-border bg-brand-bg/50">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-10 w-10 rounded-full bg-cyan-900/40 border border-cyan-500/20 flex items-center justify-center font-bold text-cyan-400">
-              {user?.username?.charAt(0).toUpperCase()}
+          <Link to="/profile" className="flex items-center gap-3 mb-4 p-2 rounded-xl hover:bg-brand-border/30 transition group">
+            <div className="h-10 w-10 rounded-full bg-cyan-900/40 border border-cyan-500/25 flex items-center justify-center font-bold text-cyan-400 group-hover:border-cyan-400 transition overflow-hidden">
+              {avatarImg ? (
+                <img src={avatarImg} alt="Avatar" className="h-full w-full object-cover" />
+              ) : (
+                user?.username?.charAt(0).toUpperCase()
+              )}
             </div>
-            <div className="overflow-hidden">
-              <p className="text-sm font-semibold text-white truncate leading-none mb-1">{user?.username}</p>
+            <div className="overflow-hidden text-left">
+              <p className="text-sm font-semibold text-white truncate leading-none mb-1 group-hover:text-cyan-400 transition">{user?.username}</p>
               <div className="inline-flex items-center gap-1 text-[10px] bg-cyan-500/10 text-cyan-400 font-semibold px-2 py-0.5 rounded border border-cyan-500/20">
                 <ShieldCheck className="h-3 w-3" />
                 {user?.role}
               </div>
             </div>
-          </div>
+          </Link>
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-brand-border hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 text-slate-400 text-xs font-semibold transition"
@@ -125,17 +203,39 @@ export default function DashboardLayout() {
             <span>Operational Integrity: 98.6%</span>
           </div>
 
-          {/* Notifications Center */}
-          <div className="relative">
+          {/* Notifications & Help Center */}
+          <div className="flex items-center gap-3">
+            {/* Theme Toggle Button */}
             <button 
-              onClick={() => setAlertsOpen(!alertsOpen)}
-              className="relative p-2 bg-brand-bg hover:bg-brand-border border border-brand-border rounded-xl text-slate-400 hover:text-white transition"
+              onClick={toggleTheme}
+              className="p-2 bg-brand-bg hover:bg-brand-border border border-brand-border rounded-xl text-slate-400 hover:text-white transition"
+              title={themeMode === "dark" ? "Switch to Bright Mode" : "Switch to Dark Mode"}
             >
-              <Bell className="h-5 w-5" />
-              {alerts.length > 0 && (
-                <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 ring-2 ring-brand-card" />
+              {themeMode === "dark" ? (
+                <Sun className="h-5 w-5 text-amber-400" />
+              ) : (
+                <Moon className="h-5 w-5 text-indigo-400" />
               )}
             </button>
+
+            <button 
+              onClick={() => setInfoOpen(true)}
+              className="p-2 bg-brand-bg hover:bg-brand-border border border-brand-border rounded-xl text-slate-400 hover:text-white transition"
+              title="Platform Concept Guide"
+            >
+              <HelpCircle className="h-5 w-5 text-cyan-400" />
+            </button>
+
+            <div className="relative">
+              <button 
+                onClick={() => setAlertsOpen(!alertsOpen)}
+                className="relative p-2 bg-brand-bg hover:bg-brand-border border border-brand-border rounded-xl text-slate-400 hover:text-white transition"
+              >
+                <Bell className="h-5 w-5" />
+                {alerts.length > 0 && (
+                  <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 ring-2 ring-brand-card" />
+                )}
+              </button>
 
             {/* Notification Dropdown Drawer */}
             {alertsOpen && (
@@ -147,20 +247,27 @@ export default function DashboardLayout() {
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {alerts.map(a => (
-                    <div key={a.id} className="p-3 bg-brand-bg/60 rounded-xl border border-red-500/10 hover:border-red-500/20 transition">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-xs font-bold text-red-400">{a.type}</span>
-                        <span className="text-[9px] text-slate-400 font-mono">{a.machine}</span>
-                      </div>
-                      <p className="text-xs text-slate-300 leading-normal">{a.msg}</p>
+                  {alerts.length === 0 ? (
+                    <div className="text-center py-6 text-slate-500 text-xs font-medium">
+                      No active alerts. Factory system running nominal.
                     </div>
-                  ))}
+                  ) : (
+                    alerts.map(a => (
+                      <div key={a.id} className="p-3 bg-brand-bg/60 rounded-xl border border-red-500/10 hover:border-red-500/20 transition">
+                        <div className="flex justify-between mb-1 text-left">
+                          <span className="text-xs font-bold text-red-400">{a.type}</span>
+                          <span className="text-[9px] text-slate-400 font-mono">{a.machine}</span>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-normal text-left">{a.msg}</p>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
           </div>
-        </header>
+        </div>
+      </header>
 
         {/* 3. Scrollable page view container */}
         <main className="flex-1 overflow-y-auto p-6 bg-brand-bg">
@@ -183,7 +290,7 @@ export default function DashboardLayout() {
               <div className="p-2 bg-cyan-500/10 rounded-lg text-cyan-400">
                 <Factory className="h-6 w-6" />
               </div>
-              <h1 className="font-bold tracking-tight text-white leading-none">FACTORYPULSE</h1>
+              <h1 className="font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 leading-none">FACTORYPULSE</h1>
             </div>
             <nav className="flex-1 space-y-2">
               {filteredNav.map((item) => {
@@ -196,7 +303,7 @@ export default function DashboardLayout() {
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                       active 
-                        ? "bg-cyan-600 text-white" 
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-glow" 
                         : "text-slate-400 hover:bg-brand-border hover:text-white"
                     }`}
                   >
@@ -216,6 +323,81 @@ export default function DashboardLayout() {
               </button>
             </div>
           </aside>
+        </div>
+      )}
+
+      {/* 5. Platform Concept Guide Modal */}
+      {infoOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={() => setInfoOpen(false)} />
+          <div className="relative bg-brand-card border border-brand-border rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-y-auto p-6 shadow-2xl z-10 space-y-6">
+            <button 
+              onClick={() => setInfoOpen(false)}
+              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-white hover:bg-brand-border rounded-lg transition"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex items-center gap-3 border-b border-brand-border/60 pb-4">
+              <div className="p-2.5 bg-cyan-500/10 rounded-xl text-cyan-400">
+                <HelpCircle className="h-6 w-6" />
+              </div>
+              <div className="text-left">
+                <h2 className="text-xl font-bold text-white leading-tight">FactoryPulse AI — Platform Overview</h2>
+                <p className="text-slate-400 text-xs mt-0.5">B.Tech Final Year Viva presentation support tool</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-slate-300 text-xs leading-relaxed">
+              <div className="space-y-4">
+                <div className="p-4 bg-brand-bg/50 border border-brand-border rounded-xl text-left">
+                  <h3 className="font-bold text-white text-sm mb-2 flex items-center gap-2">
+                    <Factory className="h-4 w-4 text-cyan-400" />
+                    1. Platform Concept (システム概要)
+                  </h3>
+                  <p>
+                    FactoryPulse AI is a **Factory Data Analytics and Business Intelligence Platform**. It translates raw machine variables into high-level business indicators (OEE, yields, and defect rates) to help managers run the factory floor efficiently.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-brand-bg/50 border border-brand-border rounded-xl text-left">
+                  <h3 className="font-bold text-white text-sm mb-2 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    2. Quality Analytics (OpenCV)
+                  </h3>
+                  <p>
+                    Conveyor line cameras snap photos of parts. OpenCV runs edge and color checks to classify them as PASS or FAIL, immediately updating the **defect counters and OEE charts** on the dashboard.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-brand-bg/50 border border-brand-border rounded-xl text-left">
+                  <h3 className="font-bold text-white text-sm mb-2 flex items-center gap-2">
+                    <Cpu className="h-4 w-4 text-amber-400" />
+                    3. Predictive Maintenance (AI Model)
+                  </h3>
+                  <p>
+                    Vibration and heat sensors log data to the database. Our **Scikit-Learn model** compares live logs to historical failure patterns to calculate machine health scores and predict future breakdowns.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-brand-bg/50 border border-brand-border rounded-xl text-left">
+                  <h3 className="font-bold text-white text-sm mb-2 flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-cyan-400" />
+                    4. E-STOP & Restart Controls
+                  </h3>
+                  <p>
+                    Clicking E-Stop writes an **`OFFLINE`** state to the database, signaling a machine shutdown. This creates real-time **downtime logs** in our database, which we analyze to measure MTTR and production loss.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-cyan-950/20 border border-cyan-500/20 rounded-xl text-center text-xs">
+              <span className="font-bold text-cyan-400">Project Data Base:</span> We processed and database-seeded **108,000 historical sensor logs** to run OEE trends and train the AI models.
+            </div>
+          </div>
         </div>
       )}
     </div>

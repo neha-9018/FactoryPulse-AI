@@ -13,6 +13,9 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), nullable=False)  # ADMIN, ENGINEER, OPERATOR, MANAGER
     is_active = Column(Boolean, default=True)
+    emp_id = Column(String(50), nullable=True)
+    shift_zone = Column(String(100), nullable=True)
+    clearance_level = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
 

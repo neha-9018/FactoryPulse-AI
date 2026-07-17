@@ -1,108 +1,43 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
-
-# Translations
-*.mo
-*.pot
-
-# Django/Flask/other logs
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-instance/
-.webassets-cache
-
-# Jupyter Notebook
-.ipynb_checkouts/
-
-# IPython
-profile_default/
-ipython_config.py
-
-# virtualenv
-.venv
+# Virtual Environment
 venv/
+.venv/
 ENV/
 env/
-.env
-.env.local
-.env.production
-.env.development
-.env.staging
 
-# Node/React
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# Python caching
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
 
-# Database / SQLite / PostgreSQL local files
+# Databases
 *.db
 *.sqlite
-data/
-pgdata/
-datasets/*.csv
-datasets/*.xlsx
-datasets/*.json
+*.sqlite3
 
-# IDE files
+# Node dependencies
+node_modules/
+dist/
+build/
+.eslintcache
+
+# Local user configs / environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .vscode/
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
-# OS files
+# Large temporary datasets/uploads files (but keep folder structure)
+backend/datasets/uploads/*
+!backend/datasets/uploads/.gitkeep
+backend/datasets/demo_images/*
+!backend/datasets/demo_images/.gitkeep
+
+# System/OS files
 .DS_Store
 Thumbs.db

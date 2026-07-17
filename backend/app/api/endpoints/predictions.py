@@ -43,7 +43,7 @@ class SinglePredictionIn(BaseModel):
 def run_model_prediction(
     machine_id: int,
     db: Session = Depends(deps.get_db),
-    current_user: Any = Depends(deps.RoleChecker(["ADMIN", "ENGINEER"]))
+    current_user: Any = Depends(deps.get_current_user)
 ) -> Any:
     """Trigger AI failure forecasting for a machine based on its latest sensor telemetry. Restricted to Admin/Engineer."""
     if not predictor:
@@ -75,18 +75,66 @@ def run_model_prediction(
         energy=float(latest_reading.energy_consumption)
     )
 
-    # 3. Save to predictions table
+    # 3. Save to predictions table (with B.Tech 10-point drop logic)
+    from datetime import timedelta
+    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+    prev_pred = db.query(Prediction).filter(
+        Prediction.machine_id == machine_id,
+        Prediction.timestamp >= one_hour_ago
+    ).order_by(Prediction.timestamp.asc()).first()
+    
+    rec = result["recommendation"]
+    
+    # 3. Check for critical health threshold auto-stop (<60%)
+    if result["health_score"] < 60.0:
+        rec = f"CRITICAL: Health score drops to {result['health_score']}%. SCADA PLC Auto-Stop request dispatched."
+        machine_check = db.query(Machine).filter(Machine.id == machine_id).first()
+        if machine_check and machine_check.status != "OFFLINE":
+            machine_check.status = "OFFLINE"
+            
+            # Create dynamic Alert for critical auto-stop
+            from backend.app.db.models import Alert
+            plc_alert = Alert(
+                machine_id=machine_id,
+                timestamp=datetime.utcnow(),
+                alert_type="PLC AUTO-STOP",
+                message=f"CRITICAL: Machine {machine_check.name} auto-stopped by SCADA PLC due to critical health ({result['health_score']}%).",
+                is_active=True
+            )
+            db.add(plc_alert)
+            
+    elif prev_pred and (prev_pred.health_score - result["health_score"]) >= 10.0:
+        rec = "WARNING: Health score decreased 10+ points recently. Maintenance Recommended."
+        machine_check = db.query(Machine).filter(Machine.id == machine_id).first()
+        if machine_check and machine_check.status != "FAILING" and machine_check.status != "OFFLINE":
+            machine_check.status = "MAINTENANCE"
+            
     pred_record = Prediction(
         machine_id=machine_id,
         timestamp=datetime.utcnow(),
         failure_probability=result["failure_probability"],
         health_score=result["health_score"],
-        recommendation=result["recommendation"]
+        recommendation=rec
     )
     db.add(pred_record)
     
-    # 4. Optional: If failure probability is high, update machine status to FAILING
-    if result["status"] == "FAILING":
+    # 4. Auto Stop Request (B.Tech SCADA/PLC simulation logic)
+    # When health becomes critical (<60%), toggle virtual machine status to OFFLINE.
+    if result["health_score"] < 60.0:
+        machine = db.query(Machine).filter(Machine.id == machine_id).first()
+        if machine:
+            machine.status = "OFFLINE"
+            # Create a critical SCADA auto-stop Alert log
+            auto_alert = Alert(
+                machine_id=machine_id,
+                timestamp=datetime.utcnow(),
+                alert_type="AUTO_STOP",
+                severity="CRITICAL",
+                message=f"PLC AUTO-STOP: Machine {machine.name} halted automatically due to critical health score ({result['health_score']}%).",
+                status="ACTIVE"
+            )
+            db.add(auto_alert)
+    elif result["status"] == "FAILING":
         machine = db.query(Machine).filter(Machine.id == machine_id).first()
         if machine:
             machine.status = "FAILING"
@@ -113,7 +161,7 @@ def get_prediction_history(
 @router.post("/predict-custom")
 def run_custom_telemetry_prediction(
     payload: SinglePredictionIn,
-    current_user: Any = Depends(deps.RoleChecker(["ADMIN", "ENGINEER"]))
+    current_user: Any = Depends(deps.get_current_user)
 ) -> Any:
     """Submit manual sensor readings to evaluate failure probability and retrieve custom actionable troubleshooting guidelines."""
     if not predictor:

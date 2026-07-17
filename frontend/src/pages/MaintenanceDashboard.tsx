@@ -15,6 +15,7 @@ export default function MaintenanceDashboard() {
   const { token, user } = useAuth();
   const [selectedMachineId, setSelectedMachineId] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [healthFilter, setHealthFilter] = useState<"ALL" | "HEALTHY" | "WARNING" | "CRITICAL">("ALL");
   const [healthScores, setHealthScores] = useState<HealthMetric[]>([
     { id: 1, machine: "CNC Milling Machine Alpha", health: 91, status: "HEALTHY", predicted_failure: "No failure predicted", recommendation: "Proceed with standard preventive maintenance in 14 days." },
     { id: 2, machine: "Industrial Robot Arm Beta", health: 94, status: "HEALTHY", predicted_failure: "No failure predicted", recommendation: "Apply joint lubrication at next scheduled downtime." },
@@ -39,8 +40,8 @@ export default function MaintenanceDashboard() {
         if (Array.isArray(data) && data.length > 0) {
           const latest = data[data.length - 1];
           const score = Math.round(latest.health_score);
-          const status = score > 85 ? "HEALTHY" : score > 60 ? "WARNING" : "FAILING";
-          const predText = score > 85 ? "No failure predicted" : `Failure probable (Prob: ${Math.round(latest.failure_probability * 100)}%)`;
+          const status = score > 80 ? "HEALTHY" : score >= 60 ? "WARNING" : "FAILING";
+          const predText = score > 80 ? "No failure predicted" : `Failure probable (Prob: ${Math.round(latest.failure_probability * 100)}%)`;
           
           setHealthScores(prev => prev.map(h => 
             h.id === selectedMachineId 
@@ -75,8 +76,8 @@ export default function MaintenanceDashboard() {
         console.warn("Backend unavailable. Simulating dynamic ML prediction locally.");
         const currentScore = healthScores.find(h => h.id === selectedMachineId)?.health || 90;
         const newScore = Math.max(30, Math.min(100, currentScore + Math.floor(Math.random() * 10) - 5));
-        const status = newScore > 85 ? "HEALTHY" : newScore > 60 ? "WARNING" : "FAILING";
-        const predText = newScore > 85 ? "No failure predicted" : "Minor wear anomalies flagged";
+        const status = newScore > 80 ? "HEALTHY" : newScore >= 60 ? "WARNING" : "FAILING";
+        const predText = newScore > 80 ? "No failure predicted" : "Minor wear anomalies flagged";
         
         setHealthScores(prev => prev.map(h => 
           h.id === selectedMachineId 
@@ -89,8 +90,8 @@ export default function MaintenanceDashboard() {
       console.warn("Backend unavailable. Simulating dynamic ML prediction locally.");
       const currentScore = healthScores.find(h => h.id === selectedMachineId)?.health || 90;
       const newScore = Math.max(30, Math.min(100, currentScore + Math.floor(Math.random() * 10) - 5));
-      const status = newScore > 85 ? "HEALTHY" : newScore > 60 ? "WARNING" : "FAILING";
-      const predText = newScore > 85 ? "No failure predicted" : "Minor wear anomalies flagged";
+      const status = newScore > 80 ? "HEALTHY" : newScore >= 60 ? "WARNING" : "FAILING";
+      const predText = newScore > 80 ? "No failure predicted" : "Minor wear anomalies flagged";
       
       setHealthScores(prev => prev.map(h => 
         h.id === selectedMachineId 
@@ -103,16 +104,23 @@ export default function MaintenanceDashboard() {
   };
 
   const getHealthColor = (score: number) => {
-    if (score >= 90) return "text-emerald-400";
-    if (score >= 70) return "text-amber-400";
+    if (score > 80) return "text-emerald-400";
+    if (score >= 60) return "text-amber-400";
     return "text-rose-500";
   };
 
   const getHealthBg = (score: number) => {
-    if (score >= 90) return "bg-emerald-500/10";
-    if (score >= 70) return "bg-amber-500/10";
+    if (score > 80) return "bg-emerald-500/10";
+    if (score >= 60) return "bg-amber-500/10";
     return "bg-rose-500/10";
   };
+
+  const filteredHealthScores = healthScores.filter((h) => {
+    if (healthFilter === "HEALTHY") return h.health > 80;
+    if (healthFilter === "WARNING") return h.health >= 60 && h.health <= 80;
+    if (healthFilter === "CRITICAL") return h.health < 60;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -123,7 +131,7 @@ export default function MaintenanceDashboard() {
         </div>
 
         {/* Dynamic Model Trigger */}
-        {user && ["ADMIN", "ENGINEER"].includes(user.role) && (
+        {user && ["ADMIN", "ENGINEER", "OPERATOR", "MANAGER"].includes(user.role) && (
           <div className="flex items-center gap-3">
             <select
               value={selectedMachineId}
@@ -148,9 +156,57 @@ export default function MaintenanceDashboard() {
         )}
       </div>
 
+      {/* Interactive Health Classification Legend Filter */}
+      <div className="flex flex-wrap gap-2 items-center p-3 bg-brand-card/30 rounded-xl border border-brand-border/40">
+        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mr-2">Filter Health:</span>
+        <button
+          onClick={() => setHealthFilter("ALL")}
+          className={`px-3 py-1 rounded-lg text-xs font-semibold border transition ${
+            healthFilter === "ALL" 
+              ? "bg-slate-700 border-slate-600 text-white" 
+              : "border-brand-border text-slate-400 hover:text-white"
+          }`}
+        >
+          Show All
+        </button>
+        <button
+          onClick={() => setHealthFilter("HEALTHY")}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition ${
+            healthFilter === "HEALTHY" 
+              ? "bg-emerald-600/35 border-emerald-500/50 text-white" 
+              : "border-brand-border text-slate-400 hover:text-emerald-400 hover:border-emerald-500/35"
+          }`}
+        >
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+          Healthy (&gt;80%)
+        </button>
+        <button
+          onClick={() => setHealthFilter("WARNING")}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition ${
+            healthFilter === "WARNING" 
+              ? "bg-amber-600/35 border-amber-500/50 text-white" 
+              : "border-brand-border text-slate-400 hover:text-amber-400 hover:border-amber-500/35"
+          }`}
+        >
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+          Warning (60%-80%)
+        </button>
+        <button
+          onClick={() => setHealthFilter("CRITICAL")}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition ${
+            healthFilter === "CRITICAL" 
+              ? "bg-rose-600/35 border-rose-500/50 text-white" 
+              : "border-brand-border text-slate-400 hover:text-rose-400 hover:border-rose-500/35"
+          }`}
+        >
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+          Critical (&lt;60%)
+        </button>
+      </div>
+
       {/* Machinery Health Indicator Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {healthScores.map((h) => (
+        {filteredHealthScores.map((h) => (
           <div key={h.id} className="p-5 glass-card rounded-2xl border border-brand-border flex gap-5">
             <div className={`h-20 w-20 flex-shrink-0 rounded-full flex flex-col items-center justify-center border border-brand-border ${getHealthBg(h.health)}`}>
               <span className={`text-2xl font-bold leading-none ${getHealthColor(h.health)}`}>{h.health}%</span>
@@ -161,7 +217,11 @@ export default function MaintenanceDashboard() {
               <div className="flex justify-between items-start">
                 <h4 className="font-bold text-white leading-tight">{h.machine}</h4>
                 <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${
-                  h.status === "HEALTHY" ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"
+                  h.status === "HEALTHY" 
+                    ? "bg-emerald-500/15 text-emerald-400" 
+                    : h.status === "WARNING"
+                    ? "bg-amber-500/15 text-amber-400"
+                    : "bg-red-500/15 text-red-400"
                 }`}>
                   {h.status}
                 </span>
@@ -171,7 +231,9 @@ export default function MaintenanceDashboard() {
               </div>
               <div className="text-xs p-3 bg-brand-bg/50 border border-brand-border rounded-xl text-slate-300 flex items-start gap-2 leading-relaxed">
                 {h.health < 60 ? (
-                  <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle className="h-4 w-4 text-rose-500 flex-shrink-0 mt-0.5" />
+                ) : h.health <= 80 ? (
+                  <AlertTriangle className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
                 ) : (
                   <ShieldCheck className="h-4 w-4 text-cyan-400 flex-shrink-0 mt-0.5" />
                 )}

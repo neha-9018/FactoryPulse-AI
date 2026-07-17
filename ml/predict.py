@@ -48,20 +48,26 @@ class MaintenancePredictor:
         
         # Scale
         scaled_features = self.scaler.transform(features)
-        
-        # Inference
         prob = float(self.model.predict_proba(scaled_features)[0][1])
-        health_score = round((1.0 - prob) * 100.0, 1)
         
-        # Formulate industry action items
-        if prob < 0.10:
+        # B.Tech Viva Health Score Formula:
+        # Health Score = 40% Vibration + 30% Temperature + 20% Current + 10% Reject Rate
+        # Normalize variables to 0-100% scores:
+        vibration_score = max(0.0, min(100.0, (1.0 - (vibration / 10.0)) * 100.0))   # 10mm/s is max limit
+        temp_score = max(0.0, min(100.0, (1.0 - ((temperature - 20.0) / 100.0)) * 100.0)) # 120C is max limit
+        current_score = max(0.0, min(100.0, (1.0 - (current / 20.0)) * 100.0))        # 20A is max limit
+        reject_score = 98.0  # Assumes standard 2% defect rate baseline
+        
+        formula_health = (0.4 * vibration_score) + (0.3 * temp_score) + (0.2 * current_score) + (0.1 * reject_score)
+        health_score = round(formula_health, 1)
+        
+        # Classify health status based on viva thresholds:
+        # Healthy (>80%), Warning (60-80%), Critical (<60%)
+        if health_score > 80.0:
             rec = "Asset running within nominal parameters. Continue standard checks."
             status = "HEALTHY"
-        elif prob < 0.50:
+        elif health_score >= 60.0:
             rec = "Minor physical variance. Monitor spindle vibration and bearing temperature metrics closely."
-            status = "HEALTHY"
-        elif prob < 0.85:
-            rec = "Moderate anomaly metrics. Schedule preventive maintenance and joint check within 48 hours."
             status = "WARNING"
         else:
             rec = "CRITICAL: Imminent failure probability detected! Halt line operations immediately for engineering inspection."

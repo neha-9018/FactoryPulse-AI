@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 
@@ -16,6 +17,9 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     role: str # ADMIN, ENGINEER, OPERATOR, MANAGER
+    emp_id: str = None
+    shift_zone: str = None
+    clearance_level: str = None
 
 class UserOut(BaseModel):
     id: int
@@ -23,6 +27,9 @@ class UserOut(BaseModel):
     email: str
     role: str
     is_active: bool
+    emp_id: str = None
+    shift_zone: str = None
+    clearance_level: str = None
 
     class Config:
         from_attributes = True
@@ -34,9 +41,10 @@ class Token(BaseModel):
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register_user(user_in: UserRegister, db: Session = Depends(deps.get_db)) -> Any:
-    # Check if username or email already exists
+    # Check if username or email already exists (case-insensitive)
     user_exists = db.query(User).filter(
-        (User.username == user_in.username) | (User.email == user_in.email)
+        (func.lower(User.username) == func.lower(user_in.username)) | 
+        (func.lower(User.email) == func.lower(user_in.email))
     ).first()
     if user_exists:
         raise HTTPException(
@@ -53,6 +61,9 @@ def register_user(user_in: UserRegister, db: Session = Depends(deps.get_db)) -> 
         email=user_in.email,
         password_hash=security.get_password_hash(user_in.password),
         role=role,
+        emp_id=user_in.emp_id,
+        shift_zone=user_in.shift_zone,
+        clearance_level=user_in.clearance_level,
         is_active=True
     )
     db.add(new_user)
@@ -62,8 +73,8 @@ def register_user(user_in: UserRegister, db: Session = Depends(deps.get_db)) -> 
 
 @router.post("/login", response_model=Token)
 def login(db: Session = Depends(deps.get_db), form_data: OAuth2PasswordRequestForm = Depends()) -> Any:
-    # Try to find user by username
-    user = db.query(User).filter(User.username == form_data.username).first()
+    # Try to find user by username (case-insensitive)
+    user = db.query(User).filter(func.lower(User.username) == func.lower(form_data.username)).first()
     if not user or not security.verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
