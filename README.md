@@ -2,9 +2,7 @@
 
 An enterprise-grade, Clean Architecture Industry 4.0 data platform combining Data Engineering (ETL, SQL), Machine Learning, Computer Vision, and full-stack React & FastAPI interfaces to simulate, monitor, and optimize smart factory operations.
 
-Inspired by automation and manufacturing solutions from Meidensha, Mitsubishi Electric, Bosch, Siemens, and Hitachi.
 
----
 
 ## Project Structure
 
