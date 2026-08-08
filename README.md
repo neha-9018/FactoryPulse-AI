@@ -21,6 +21,7 @@ FactoryPulse/
 │   │   │   │   ├── predictions.py # ML forecasting, health diagnostics & Auto-Stop
 │   │   │   │   ├── quality.py     # CV quality check uploads & defect Auto-Stop
 │   │   │   │   ├── chatbot.py     # AI text-to-SQL manufacturing chatbot
+│   │   │   │   ├── logistics.py   # WMS/WES/WCS logistics endpoints
 │   │   │   │   └── reports.py     # Corporate report compiler and CSV exporter
 │   │   │   └── deps.py            # JWT and role-based permissions
 │   │   ├── core/
@@ -34,18 +35,18 @@ FactoryPulse/
 ├── frontend/           # React + TypeScript client dashboard
 │   ├── src/
 │   │   ├── components/
-│   │   │   └── DashboardLayout.tsx  # Sidebar frame (filtered by RBAC rules)
+│   │   │   └── DashboardLayout.tsx  # Sidebar frame & persistent AI Chat Drawer
 │   │   ├── pages/
 │   │   │   ├── ExecutiveDashboard.tsx   # Asset health matrix and alarm board
 │   │   │   ├── ProductionDashboard.tsx  # Production stats and shift-locked views
 │   │   │   ├── QualityDashboard.tsx     # OpenCV uploads inspection station (1540 logs)
 │   │   │   ├── MaintenanceDashboard.tsx # Real-time ML diagnostic gauges
 │   │   │   ├── AnalyticsDashboard.tsx   # Live sensor time-series charts (limit locks)
-│   │   │   ├── AssistantDashboard.tsx   # AI Natural Language database chat portal
+│   │   │   ├── LogisticsDashboard.tsx   # WMS, WES, and WCS 3D Conveyor panel
 │   │   │   ├── ReportsDashboard.tsx     # Corporate report exporter (OEE, Downtime, Health)
 │   │   │   └── ProfileDashboard.tsx     # User session details
 │   │   ├── App.tsx        # Protected route wrappers and routing
-│   │   ├── index.css      # Styling tokens & high-contrast accessible layouts
+│   │   ├── index.css      # Styling tokens, animations & 3D CSS perspective rules
 │   │   └── main.tsx       # VDOM mount point
 │   ├── package.json       # Node dependency locks
 │   └── vite.config.ts     # Dev proxy forwarding
@@ -56,10 +57,15 @@ FactoryPulse/
 ├── computer_vision/    # Quality inspection models & image processing
 │   ├── generate_demo_images.py # Programmatically seeds mock parts (Healthy, Crack, Color, Size)
 │   └── inspector.py       # OpenCV color check, Canny filters, and dimension contours
+├── industrial_integration/ # MQTT & PLC safety loop configurations
+│   ├── mqtt_simulator.py       # Live conveyor motor telemetry publisher loop
+│   └── node_red_flow.json      # Node-RED PLC gateway interlock diagrams
 ├── datasets/           # CSV datasets and uploads directory (Git ignored)
 ├── database/           # PostgreSQL definitions
 │   └── schema.sql         # Base database definitions
 ├── tests/              # Comprehensive pytest suite
+│   ├── test_logistics.py  # WMS/WES/WCS API validation tests
+│   └── ...
 └── README.md           # Master documentation
 ```
 
@@ -77,7 +83,12 @@ The dashboard enforces strict page filters and routing guards to protect corpora
 * **Critical Health Threshold**: If a machine's calculated health score falls below 60%, the backend automatically sets the machine's status to `OFFLINE` (Safe Stop) and registers a PLC Auto-Stop Alarm.
 * **Quality Fail limit**: If the CV inspection logs detect 3 consecutive defect failures on a single machine conveyor line, the backend dispatches a SCADA stop command and triggers an alarm notification.
 
-### 3. High-Contrast Accessibility Theme
+### 3. Intelligent Logistics Control Loop (WMS / WES / WCS)
+* **WMS**: Real-time warehouse raw stock monitoring charts tracking Castings, Seals, and Spindle inventories.
+* **WES**: Schedules move instructions (e.g. `IN_TRANSIT` -> `COMPLETED`) routing materials to designated shop-floor CNC machining sections.
+* **WCS**: Features a hardware-accelerated **3D Conveyor Belt** drawing with rolling highlights and a solid 3D cardboard cargo box, dynamically changing colors and labels based on the active WES payload.
+
+### 4. High-Contrast Accessibility Theme
 * Integrated high-contrast colors, pure black primary text (`#000000`), bold font weights (`font-weight: 600`), and thicker borders (`border-width: 2px`) in Light Mode to support visually impaired shop floor staff.
 
 ---
@@ -119,13 +130,17 @@ The dashboard enforces strict page filters and routing guards to protect corpora
    ```bash
    uvicorn backend.app.main:app --port 8085 --reload
    ```
-2. Start the React frontend client:
+2. Start the Conveyor MQTT Simulator:
+   ```bash
+   python industrial_integration/mqtt_simulator.py
+   ```
+3. Start the React frontend client:
    ```bash
    cd frontend
    npm install
    npm run dev
    ```
-3. Open **`http://localhost:3000`** in your web browser.
+4. Open **`http://localhost:3000`** in your web browser.
 
 #### Demo Credentials:
 * **Admin**: Username `admin` or `neha_yadav` / Password `admin123`
