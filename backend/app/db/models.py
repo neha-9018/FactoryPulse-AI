@@ -143,3 +143,46 @@ class Alert(Base):
 
     # Relationships
     machine = relationship("Machine", back_populates="alerts")
+
+
+class WMSInventory(Base):
+    __tablename__ = "wms_inventory"
+
+    id = Column(Integer, primary_key=True, index=True)
+    item_name = Column(String(100), unique=True, nullable=False)
+    item_code = Column(String(50), unique=True, nullable=False)
+    quantity = Column(Integer, default=0)
+    min_threshold = Column(Integer, default=20)
+    unit = Column(String(20), default="units")
+    last_updated = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class WESMovementTask(Base):
+    __tablename__ = "wes_movement_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    material_type = Column(String(50), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    source = Column(String(100), default="MAIN_WAREHOUSE")
+    destination = Column(String(100), nullable=False)
+    priority = Column(String(20), default="MEDIUM") # HIGH, MEDIUM, LOW
+    assigned_carrier = Column(String(50), default="AGV_ROBOT_01")
+    status = Column(String(20), default="PENDING") # PENDING, IN_TRANSIT, COMPLETED
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class WCSConveyorState(Base):
+    __tablename__ = "wcs_conveyor_state"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), unique=True, default="MAIN_CONVEYOR")
+    is_running = Column(Boolean, default=False)
+    speed_mps = Column(Numeric(4, 2), default=0.0)
+    direction = Column(String(20), default="FORWARD")
+    motor_temp = Column(Numeric(5, 2), default=35.0)
+    current_cargo = Column(String(100), nullable=True)
+    status = Column(String(20), default="IDLE") # IDLE, ACTIVE, FAULTED
+    error_message = Column(Text, nullable=True)
+    last_ping = Column(DateTime(timezone=True), default=datetime.utcnow)
+

@@ -124,3 +124,31 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--brand-accent);
 }
+
+/* Conveyor Package Movement Keyframes */
+@keyframes conveyor-move {
+  0% {
+    left: -10%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes roller-roll {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+}
+
+.animate-roller-roll {
+  background-size: 200% 100%;
+  animation: roller-roll 1.5s linear infinite;
+}
+
+.animate-conveyor-move {
+  animation: conveyor-move 8s linear infinite;
+}

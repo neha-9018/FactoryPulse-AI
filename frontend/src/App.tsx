@@ -9,6 +9,7 @@ import QualityDashboard from "./pages/QualityDashboard";
 import AssistantDashboard from "./pages/AssistantDashboard";
 import ProfileDashboard from "./pages/ProfileDashboard";
 import ReportsDashboard from "./pages/ReportsDashboard";
+import LogisticsDashboard from "./pages/LogisticsDashboard";
 import { ShieldAlert, Cpu } from "lucide-react";
 
 // Auth Context
@@ -98,6 +99,7 @@ export default function App() {
             <Route path="assistant" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "ENGINEER", "OPERATOR"]}><AssistantDashboard /></ProtectedRoute>} />
             <Route path="profile" element={<ProfileDashboard />} />
             <Route path="reports" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "ENGINEER"]}><ReportsDashboard /></ProtectedRoute>} />
+            <Route path="logistics" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "ENGINEER", "OPERATOR"]}><LogisticsDashboard /></ProtectedRoute>} />
           </Route>
 
           <Route path="/unauthorized" element={<UnauthorizedView />} />

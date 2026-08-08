@@ -10,7 +10,7 @@ from backend.app.db.models import Base, User
 from backend.app.core.security import get_password_hash
 
 # Set up endpoints
-from backend.app.api.endpoints import auth, machines, dashboard, alerts, predictions, quality, chatbot
+from backend.app.api.endpoints import auth, machines, dashboard, alerts, predictions, quality, chatbot, logistics
 from computer_vision.generate_demo_images import generate_demo_parts
 
 logging.basicConfig(level=logging.INFO)
@@ -174,6 +174,35 @@ def startup_db_setup():
                 db.bulk_save_objects(records)
                 db.commit()
                 logger.info("[SUCCESS] Seeding of 1540 quality inspections complete!")
+
+                # Seed initial WMS Inventory & WCS Conveyor State
+                from backend.app.db.models import WMSInventory, WCSConveyorState
+                if db.query(WMSInventory).count() == 0:
+                    logger.info("Pre-seeding WMS Inventory stock levels...")
+                    inventory_items = [
+                        WMSInventory(item_name="Raw Castings", item_code="CAST_RAW", quantity=250, min_threshold=40, unit="units"),
+                        WMSInventory(item_name="Bearing Seals", item_code="SEAL_RAW", quantity=180, min_threshold=30, unit="units"),
+                        WMSInventory(item_name="Spindle Assemblies", item_code="SPIN_RAW", quantity=45, min_threshold=10, unit="units"),
+                        WMSInventory(item_name="Sensor Housings", item_code="HOUS_RAW", quantity=120, min_threshold=25, unit="units")
+                    ]
+                    db.bulk_save_objects(inventory_items)
+                    db.commit()
+                    logger.info("[SUCCESS] Seeding of WMS inventory complete!")
+
+                if db.query(WCSConveyorState).count() == 0:
+                    logger.info("Pre-seeding WCS Conveyor State...")
+                    conveyor = WCSConveyorState(
+                        name="MAIN_CONVEYOR",
+                        is_running=False,
+                        speed_mps=0.0,
+                        direction="FORWARD",
+                        motor_temp=35.5,
+                        current_cargo=None,
+                        status="IDLE"
+                    )
+                    db.add(conveyor)
+                    db.commit()
+                    logger.info("[SUCCESS] Seeding of WCS Conveyor State complete!")
         except Exception as se:
             db.rollback()
             logger.error(f"Error seeding demo users: {se}")
@@ -191,6 +220,7 @@ app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["Factory Alerts
 app.include_router(predictions.router, prefix="/api/v1/predictions", tags=["ML Predictive Maintenance"])
 app.include_router(quality.router, prefix="/api/v1/quality", tags=["CV Quality Inspection"])
 app.include_router(chatbot.router, prefix="/api/v1/chatbot", tags=["AI Manufacturing Assistant"])
+app.include_router(logistics.router, prefix="/api/v1/logistics", tags=["WMS/WES/WCS Logistics"])
 
 @app.get("/")
 def read_root():

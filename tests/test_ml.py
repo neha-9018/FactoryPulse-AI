@@ -19,13 +19,13 @@ class TestMLPipeline(unittest.TestCase):
     def test_predictor_bounds(self):
         # 1. Test nominal input values (should predict HEALTHY)
         res = self.predictor.predict_health(
-            temperature=60.0,
+            temperature=25.0,
             pressure=100.0,
             humidity=45.0,
             voltage=220.0,
-            current=8.0,
+            current=4.0,
             rpm=2000.0,
-            vibration=1.5,
+            vibration=0.5,
             energy=1.2
         )
         

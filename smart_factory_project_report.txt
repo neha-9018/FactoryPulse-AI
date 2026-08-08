@@ -1,0 +1,263 @@
+FACTORYPULSE INDUSTRY 4.0 CENTRALIZED PLATFORM
+COMPLETE PROJECT SPECIFICATION & TECHNICAL DOCUMENTATION
+--------------------------------------------------------------------------------
+
+1. PROJECT OVERVIEW & GOALS
+The FactoryPulse project is a centralized Industry 4.0 data platform designed to monitor shop floor assets, automate product quality controls, and predict equipment failures. By integrating telemetry pipelines, Machine Learning forecasting, and Computer Vision diagnostics, the platform increases Overall Equipment Effectiveness (OEE) while minimizing unplanned factory downtime.
+
+Key Objectives:
+- Real-time IoT Telemetry Acquisition (Vibration, Temperature, Current, Pressure).
+- Machine Learning Predictive Maintenance (Random Forest Classification model).
+- Computer Vision Quality Inspections (OpenCV contour checks for structural defects).
+- Strict Role-Based Access Control (RBAC security mapping).
+- SCADA Safe Auto-Stop Request triggers mapped to PLC endpoints.
+- Intelligent Logistics & Material Handling Integration (WMS, WES, and WCS modules).
+
+--------------------------------------------------------------------------------
+
+2. SYSTEMS ARCHITECTURE & DATA FLOW
+
+    [Shop Floor Layer]
+    - Telemetry Sensors (Vibration, Temp, Current)
+            │
+            ▼
+    [SCADA & PLC Gateway] <───► [Node-RED & MQTT Conveyor Simulator]
+            │
+            ▼
+    [FastAPI REST API Layer]
+    - SQL database schemas (PostgreSQL / SQLite)
+    - ML inference model engines (Random Forest)
+    - Computer Vision image scripts (OpenCV edge checkers)
+    - Logistics Controllers (WMS inventory, WES movement tasks, WCS telemetry)
+            │
+            ▼
+    [React Presentation Layer]
+    - High-contrast responsive interface widgets
+
+--------------------------------------------------------------------------------
+
+3. MACHINE LEARNING WORKFLOW & TRAINING PIPELINE
+
+A. Predictive Diagnostic Workflow:
+
+    [Raw IoT Sensor Data]
+   (Vibration, Temp, Current)
+               │
+               ▼
+    [StandardScaler Scaling]  <── (Removes scale/unit bias)
+               │
+               ▼
+    [Classifier Model Pool]   <── (Random Forest vs XGBoost vs LightGBM)
+               │
+               ▼
+    [Inference Engine]        ───► [Failure Probability %]
+               │
+               ▼
+   [Dynamic Health Score]     ───► Formula: 40% Vib + 30% Temp + 20% Cur + 10% Reject
+               │
+               ▼
+    [Anomaly Threshold Guard]
+    ├── Drop >= 10 pts in 1h  ───► Status: MAINTENANCE
+    └── Score < 60%           ───► SCADA/PLC Stop Override -> OFFLINE
+
+
+B. Model Evaluation F1-Score Comparison:
+
+========================================================================
+Random Forest : ███████████████████████████████████████████████ 0.977 (Selected)
+XGBoost       : █████████████████████████████████████████████   0.965
+LightGBM      : ██████████████████████████████████████████     0.958
+========================================================================
+
+
+C. Dynamic Operational Health Score Formula:
+Health Score = 40% (Vibration Score) + 30% (Temperature Score) + 20% (Current Score) + 10% (Reject Rate)
+
+Health Boundaries and Actions:
+- Healthy (greater than 80%): Standard operations.
+- Warning (60% - 80%): Logs maintenance recommendations.
+- Critical (less than 60%): Dispatches SCADA Auto-Stop requests, setting machine status to OFFLINE and logging a critical alert.
+- 10-Point Drop Rule: If health drops by 10+ points within 1 hour, status changes to MAINTENANCE.
+
+--------------------------------------------------------------------------------
+
+4. COMPUTER VISION QUALITY CONTROL WORKFLOW
+
+   Conveyor Part Capture
+            │
+            ▼
+   Preprocessing (Grayscale & Resize)
+            │
+            ▼
+   OpenCV Contour & Edge Checks
+            │
+      ┌─────┴─────┐
+      ▼           ▼
+  [ PASS ]    [ FAIL ] (Classify: Crack / Label Missing / Dimensions)
+                  │
+                  ▼
+              Is Fail Count >= 3 consecutively?
+                  │
+            ┌─────┴─────┐
+            ▼           ▼
+         [ YES ]     [ NO ]
+            │           │
+            ▼           ▼
+     SCADA PLC Stop   Continue Operations
+    (Status: OFFLINE)
+
+
+Defect Categories Classified:
+- LABEL_MISSING: Misaligned or missing packaging stickers.
+- SURFACE_CRACK: Hairline metal fractures detected via edge analysis.
+- DAMAGE: Deformation or structural damage.
+- WRONG_COLOR / WRONG_DIMENSION: Dimension deviations.
+
+--------------------------------------------------------------------------------
+
+5. INTELLIGENT LOGISTICS (WMS, WES, WCS & NODE-RED PIPELINE)
+
+FactoryPulse integrates automated logistics and material flow control:
+
+A. Warehouse Management System (WMS):
+- Monitors stock balances of raw castings, bearing seals, spindle assemblies, and sensor housings.
+- Generates low-stock alerts when counts drop below min thresholds.
+
+B. Warehouse Execution System (WES):
+- Coordinates logistics tasks on the shop floor.
+- Automates task prioritizing (HIGH, MEDIUM, LOW) and carrier dispatch (AGVs vs. Conveyor loops) when assembly line demands are triggered.
+
+C. Warehouse Control System (WCS):
+- Displays equipment telemetry from conveyor belts (speed m/s, motor temperature, payload cargo, faults).
+- Interactive SCADA console triggers (Start, Stop, Reverse, Fault simulation).
+
+D. Node-RED & MQTT Pipeline Integration:
+
+    [FactoryPulse UI]
+           │
+           ▼ (HTTP API Command)
+    [FastAPI Backend]
+           │
+           ▼ (Publish CMD Topic: factorypulse/conveyor/cmd)
+    [MQTT Broker (broker.emqx.io)]
+           │
+           ▼
+    [Node-RED Interlocks & PLC Simulator] (Process control logic)
+           │
+           ▼ (Publish Telemetry Topic: factorypulse/conveyor/status)
+    [MQTT Broker (broker.emqx.io)]
+           │
+           ▼
+    [FactoryPulse Live Dashboard]
+
+--------------------------------------------------------------------------------
+
+6. DATABASE SCHEMA SPECIFICATIONS
+
+Table: Users
+- id (Integer, Primary Key)
+- username (String, Unique, Case-Insensitive)
+- email (String)
+- role (String: ADMIN, MANAGER, ENGINEER, OPERATOR)
+- emp_id (String)
+- shift_zone (String)
+- clearance_level (String)
+
+Table: Machines
+- id (Integer, Primary Key)
+- name (String)
+- type (String)
+- status (String: OPERATIONAL, MAINTENANCE, OFFLINE)
+- location (String)
+
+Table: SensorData
+- id (Integer, Primary Key)
+- machine_id (Integer, Foreign Key)
+- timestamp (DateTime)
+- temperature (Float)
+- vibration (Float)
+- pressure (Float)
+- energy_consumption (Float)
+
+Table: WMSInventory
+- id (Integer, Primary Key)
+- item_name (String, Unique)
+- item_code (String, Unique)
+- quantity (Integer)
+- min_threshold (Integer)
+- unit (String)
+
+Table: WESMovementTask
+- id (Integer, Primary Key)
+- material_type (String)
+- quantity (Integer)
+- source (String)
+- destination (String)
+- priority (String: HIGH, MEDIUM, LOW)
+- assigned_carrier (String)
+- status (String: PENDING, IN_TRANSIT, COMPLETED)
+
+Table: WCSConveyorState
+- id (Integer, Primary Key)
+- name (String, Unique)
+- is_running (Boolean)
+- speed_mps (Float)
+- direction (String: FORWARD, REVERSE)
+- motor_temp (Float)
+- current_cargo (String)
+- status (String: IDLE, ACTIVE, FAULTED)
+- error_message (Text)
+
+--------------------------------------------------------------------------------
+
+7. SECURITY & ACCESS CONTROL (RBAC MATRIX)
+
+Permissions Matrix:
+================================================================================
+Module                 │ Admin      │ Manager    │ Engineer   │ Operator
+================================================================================
+Executive View         │ ✅ Full    │ ✅ Full    │ 👁️ View    │ ❌ Blocked
+Production Analytics   │ ✅ Full    │ ✅ Full    │ ✅ Full    │ 👁️ Shift-Locked
+Quality Control        │ ✅ Full    │ ✅ Full    │ ✅ Full    │ 👁️ View + Inspect
+Maintenance AI         │ ✅ Full    │ ✅ Full    │ ✅ Full    │ ✅ Full
+Custom Analytics       │ ✅ Full    │ ✅ Full    │ ✅ Full    │ 👁️ Machine-Locked
+Intelligent Logistics  │ ✅ Full    │ ✅ Full    │ ✅ Full    │ 👁️ View + Request
+AI Assistant           │ ✅ Full    │ ✅ Full    │ ✅ Full    │ ✅ Full
+Corporate Reports      │ ✅ Full    │ ✅ Full    │ 👁️ Export   │ ❌ Blocked
+================================================================================
+
+- Executive View: Access restricted to Admin and Manager. Engineers have View-only access. Operators are blocked.
+- Production Analytics: Viewable by Admin, Manager, and Engineer. Operators are locked to their current shift logs.
+- Custom Analytics: Viewable by Admin, Manager, and Engineer. Operators are locked to their assigned machine.
+- Corporate Reports: Access restricted to Admin and Manager. Engineers can only download health reports. Operators are blocked.
+
+--------------------------------------------------------------------------------
+
+8. LIGHT-MODE ACCESSIBILITY
+Designed for high-contrast shop floor conditions:
+- Pure black primary text (#000000) for maximum contrast against white backgrounds.
+- Enhanced font weights (font-weight: 600+) for metrics.
+- Thicker slate borders (2px slate-500) to demarcate cards and buttons.
+
+--------------------------------------------------------------------------------
+
+9. SETUP & RUNNING INSTRUCTIONS
+
+Backend Setup:
+1. Initialize virtual environment:
+   Windows cmd: venv\Scripts\activate
+   Windows PowerShell: .\venv\Scripts\Activate.ps1
+   Linux/macOS: source venv/bin/activate
+2. Install dependencies: pip install -r backend/requirements.txt
+3. Seed database: python backend/app/initial_seed.py
+4. Start server: uvicorn backend.app.main:app --port 8085 --reload
+
+Frontend Setup:
+1. Install dependencies: cd frontend && npm install
+2. Start server: npm run dev
+3. Access: http://localhost:3000
+
+VCS Commits & Push:
+1. git branch -M main
+2. git remote add origin https://github.com/YOUR_USERNAME/AI-Manufacturing-Data-Platform.git
+3. git push -u origin main

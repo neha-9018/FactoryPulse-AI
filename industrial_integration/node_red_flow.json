@@ -1,0 +1,108 @@
+[
+    {
+        "id": "fp_flow_tab",
+        "type": "tab",
+        "label": "FactoryPulse Logistics",
+        "disabled": false,
+        "info": "This Node-RED flow intercepts conveyor control commands from FactoryPulse via MQTT, updates conveyor tracking telemetry, and publishes the status back to the dashboard."
+    },
+    {
+        "id": "mqtt_in_cmd",
+        "type": "mqtt in",
+        "z": "fp_flow_tab",
+        "name": "Listen to Conveyor Cmds",
+        "topic": "factorypulse/conveyor/cmd",
+        "qos": "1",
+        "datatype": "json",
+        "broker": "emqx_public_broker",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 200,
+        "y": 180,
+        "wires": [
+            [
+                "process_plc_logic"
+            ]
+        ]
+    },
+    {
+        "id": "process_plc_logic",
+        "type": "function",
+        "z": "fp_flow_tab",
+        "name": "PLC Safe Stop & Interlock Logic",
+        "func": "var cmd = msg.payload.command;\nvar speed = msg.payload.speed || 0.0;\nvar direction = msg.payload.direction || \"FORWARD\";\n\n// Simulate PLC Safety Interlocks\nvar status = \"ACTIVE\";\nvar error = \"\";\nvar temp = 38.2;\n\nif (cmd === \"STOP\") {\n    status = \"IDLE\";\n    speed = 0.0;\n    temp = 35.0;\n} else if (cmd === \"TRIGGER_FAULT\") {\n    status = \"FAULTED\";\n    speed = 0.0;\n    temp = 85.0;\n    error = \"PLC Alarm: Conveyor belt overloaded.\";\n} else if (cmd === \"START\") {\n    status = \"ACTIVE\";\n    speed = speed > 0 ? speed : 0.8;\n    temp = 42.1;\n}\n\nmsg.payload = {\n    \"name\": \"MAIN_CONVEYOR\",\n    \"is_running\": (status === \"ACTIVE\"),\n    \"speed_mps\": speed,\n    \"direction\": direction,\n    \"motor_temp\": temp,\n    \"status\": status,\n    \"error_message\": error,\n    \"timestamp\": new Date().toISOString()\n};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 180,
+        "wires": [
+            [
+                "mqtt_out_status",
+                "debug_node"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_out_status",
+        "type": "mqtt out",
+        "z": "fp_flow_tab",
+        "name": "Publish Conveyor Status",
+        "topic": "factorypulse/conveyor/status",
+        "qos": "1",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProperties": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "emqx_public_broker",
+        "x": 750,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "debug_node",
+        "type": "debug",
+        "z": "fp_flow_tab",
+        "name": "PLC Logs",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 710,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "emqx_public_broker",
+        "type": "mqtt-broker",
+        "name": "EMQX Public Broker",
+        "broker": "broker.emqx.io",
+        "port": "1883",
+        "clientid": "factorypulse_nodered",
+        "autoConnect": true,
+        "usetls": false,
+        "compatmode": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "factorypulse/nodered/status",
+        "birthQos": "0",
+        "birthPayload": "online",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "factorypulse/nodered/status",
+        "willQos": "0",
+        "willPayload": "offline"
+    }
+]

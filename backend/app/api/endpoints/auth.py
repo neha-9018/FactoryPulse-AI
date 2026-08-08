@@ -17,9 +17,9 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     role: str # ADMIN, ENGINEER, OPERATOR, MANAGER
-    emp_id: str = None
-    shift_zone: str = None
-    clearance_level: str = None
+    emp_id: str | None = None
+    shift_zone: str | None = None
+    clearance_level: str | None = None
 
 class UserOut(BaseModel):
     id: int
@@ -27,9 +27,9 @@ class UserOut(BaseModel):
     email: str
     role: str
     is_active: bool
-    emp_id: str = None
-    shift_zone: str = None
-    clearance_level: str = None
+    emp_id: str | None = None
+    shift_zone: str | None = None
+    clearance_level: str | None = None
 
     class Config:
         from_attributes = True
