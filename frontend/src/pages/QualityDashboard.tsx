@@ -45,6 +45,83 @@ export default function QualityDashboard() {
     image_path: "/datasets/demo_images/machined_part_inspection.jpg"
   });
 
+  // Live 3D Factory Video Simulator State
+  const [isLive, setIsLive] = useState(false);
+  const [livePartPos, setLivePartPos] = useState(0);
+  const [liveDefect, setLiveDefect] = useState<string>("NONE");
+  const [liveStatus, setLiveStatus] = useState<string>("PASS");
+  const [conveyorHalted, setConveyorHalted] = useState(false);
+  const [recentFailures, setRecentFailures] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!isLive || conveyorHalted) return;
+
+    const interval = setInterval(() => {
+      setLivePartPos(prev => {
+        if (prev >= 100) {
+          // Determine defect type for the next incoming part
+          const isDefect = Math.random() < 0.15; // 15% defect rate
+          if (isDefect) {
+            const types = ["SURFACE_CRACK", "LABEL_MISSING", "WRONG_COLOR", "WRONG_DIMENSION"];
+            const selected = types[Math.floor(Math.random() * types.length)];
+            setLiveDefect(selected);
+            setLiveStatus("FAIL");
+          } else {
+            setLiveDefect("NONE");
+            setLiveStatus("PASS");
+          }
+          return 0;
+        }
+
+        const nextPos = prev + 1.2;
+
+        // When the part crosses the center scanning laser line (50%)
+        if (prev < 50 && nextPos >= 50) {
+          setStats(prevStats => {
+            const isPass = liveStatus === "PASS";
+            const nextTotal = prevStats.total_inspected + 1;
+            const nextPassed = isPass ? prevStats.passed_count + 1 : prevStats.passed_count;
+            const nextFailed = !isPass ? prevStats.failed_count + 1 : prevStats.failed_count;
+            const nextDist = { ...prevStats.defect_distribution };
+            
+            if (liveDefect !== "NONE" && liveDefect in nextDist) {
+              nextDist[liveDefect] = nextDist[liveDefect] + 1;
+            }
+            
+            return {
+              total_inspected: nextTotal,
+              passed_count: nextPassed,
+              failed_count: nextFailed,
+              pass_rate: Math.round((nextPassed / nextTotal) * 10000) / 100,
+              defect_distribution: nextDist
+            };
+          });
+
+          // Check for 3 consecutive failures to trigger safety stop
+          setRecentFailures(prevFails => {
+            const updated = [...prevFails, liveStatus];
+            const lastThree = updated.slice(-3);
+            if (lastThree.length === 3 && lastThree.every(s => s === "FAIL")) {
+              setConveyorHalted(true);
+            }
+            return lastThree;
+          });
+
+          setInspectionResult({
+            status: liveStatus,
+            defect_type: liveDefect,
+            confidence_score: 0.93 + Math.random() * 0.06,
+            image_path: "/datasets/demo_images/machined_part_inspection.jpg"
+          });
+        }
+
+        return nextPos;
+      });
+    }, 30);
+
+    return () => clearInterval(interval);
+  }, [isLive, liveStatus, liveDefect, conveyorHalted]);
+
   const fetchStats = () => {
     fetch("/api/v1/quality/stats", {
       headers: { Authorization: `Bearer ${token}` }
@@ -213,75 +290,189 @@ export default function QualityDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Side: Upload & Run */}
         <div className="lg:col-span-2 p-5 glass-card rounded-2xl border border-brand-border space-y-5">
-          <h3 className="font-bold text-white text-sm uppercase tracking-wider flex items-center gap-2">
-            <Camera className="h-4 w-4 text-cyan-400" />
-            Live Inspection Camera
-          </h3>
-
-          {/* Preset parts selector for instant testing */}
-          <div className="space-y-2">
-            <span className="text-[10px] text-slate-400 uppercase font-semibold">Test with seeded parts:</span>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => inspectDemoPart("healthy_part.png")} className="px-3 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-xs rounded-lg text-emerald-400 hover:text-emerald-300 font-semibold transition">
-                Healthy Part (PASS)
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h3 className="font-bold text-white text-sm uppercase tracking-wider flex items-center gap-2">
+              <Camera className="h-4 w-4 text-cyan-400" />
+              Quality Inspection Station
+            </h3>
+            
+            {/* Mode selection toggle */}
+            <div className="flex bg-brand-bg rounded-lg p-0.5 border border-brand-border">
+              <button 
+                onClick={() => { setIsLive(false); setInspectionResult(null); }}
+                className={`px-3 py-1 rounded font-semibold text-xs transition ${!isLive ? "bg-cyan-600 text-white" : "text-slate-400 hover:text-slate-200"}`}
+              >
+                Static Uploader
               </button>
-              <button onClick={() => inspectDemoPart("label_missing.png")} className="px-3 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-xs rounded-lg text-rose-400 hover:text-rose-300 font-semibold transition">
-                Missing Label
-              </button>
-              <button onClick={() => inspectDemoPart("surface_crack.png")} className="px-3 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-xs rounded-lg text-rose-400 hover:text-rose-300 font-semibold transition">
-                Surface Crack
-              </button>
-              <button onClick={() => inspectDemoPart("wrong_color.png")} className="px-3 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-xs rounded-lg text-rose-400 hover:text-rose-300 font-semibold transition">
-                Wrong Color
-              </button>
-              <button onClick={() => inspectDemoPart("wrong_dimension.png")} className="px-3 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-xs rounded-lg text-rose-400 hover:text-rose-300 font-semibold transition">
-                Wrong Dimensions
+              <button 
+                onClick={() => { setIsLive(true); setConveyorHalted(false); setLivePartPos(0); }}
+                className={`px-3 py-1 rounded font-semibold text-xs transition ${isLive ? "bg-cyan-600 text-white" : "text-slate-400 hover:text-slate-200"}`}
+              >
+                Live 3D Camera
               </button>
             </div>
           </div>
 
+          {/* SCADA halt alert */}
+          {isLive && conveyorHalted && (
+            <div className="p-4 bg-rose-950/80 border-2 border-rose-500 rounded-xl flex items-center justify-between shadow-2xl animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-rose-500/20 rounded-lg text-rose-500">
+                  <AlertOctagon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-xs uppercase tracking-wide">SCADA Safe Shutdown</h4>
+                  <p className="text-[10px] text-rose-300">Conveyor stopped automatically due to 3 consecutive defect check failures.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => { setConveyorHalted(false); setRecentFailures([]); setLivePartPos(0); }}
+                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-lg transition"
+              >
+                Reset Conveyor PLC
+              </button>
+            </div>
+          )}
+
+          {!isLive && (
+            /* Preset parts selector for instant testing */
+            <div className="space-y-2">
+              <span className="text-[10px] text-slate-400 uppercase font-semibold">Test with seeded parts:</span>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => inspectDemoPart("healthy_part.png")} className="px-3 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-xs rounded-lg text-emerald-400 hover:text-emerald-300 font-semibold transition">
+                  Healthy Part (PASS)
+                </button>
+                <button onClick={() => inspectDemoPart("label_missing.png")} className="px-3 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-xs rounded-lg text-rose-400 hover:text-rose-300 font-semibold transition">
+                  Missing Label
+                </button>
+                <button onClick={() => inspectDemoPart("surface_crack.png")} className="px-3 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-xs rounded-lg text-rose-400 hover:text-rose-300 font-semibold transition">
+                  Surface Crack
+                </button>
+                <button onClick={() => inspectDemoPart("wrong_color.png")} className="px-3 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-xs rounded-lg text-rose-400 hover:text-rose-300 font-semibold transition">
+                  Wrong Color
+                </button>
+                <button onClick={() => inspectDemoPart("wrong_dimension.png")} className="px-3 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-xs rounded-lg text-rose-400 hover:text-rose-300 font-semibold transition">
+                  Wrong Dimensions
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Interactive Bounding box / Image side by side */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-            {/* Input camera view */}
-            <div className="border border-brand-border rounded-xl bg-brand-bg/50 aspect-video flex flex-col items-center justify-center overflow-hidden relative">
-              {/* Corner HUD Brackets */}
-              <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-cyan-500/50 pointer-events-none z-20" />
-              <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-cyan-500/50 pointer-events-none z-20" />
-              <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-cyan-500/50 pointer-events-none z-20" />
-              <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-cyan-500/50 pointer-events-none z-20" />
-
-              {/* HUD Header */}
-              <div className="absolute top-3 left-3 font-mono text-[9px] text-cyan-400/80 bg-brand-bg/90 px-2 py-0.5 rounded border border-brand-border/60 pointer-events-none tracking-widest z-20">
-                CAM_04 // GANTRY_VIEW // 30FPS
-              </div>
-
-              {/* Center Crosshair Target */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20 opacity-30 flex items-center justify-center">
-                <div className="h-10 w-10 border border-dashed border-cyan-400 rounded-full animate-pulse" />
-                <div className="absolute h-14 w-px bg-cyan-400" />
-                <div className="absolute w-14 h-px bg-cyan-400" />
-              </div>
-
-              {/* Laser Scanline */}
-              {previewUrl && <div className="animate-laser-scan" />}
-
-              {previewUrl ? (
-                <img src={previewUrl} alt="Inspection Telemetry" className="absolute inset-0 h-full w-full object-cover" />
-              ) : (
-                <div className="text-center space-y-2 z-10">
-                  <Upload className="h-8 w-8 text-slate-500 mx-auto" />
-                  <p className="text-xs text-slate-400">Select a part image or drag file here</p>
+            
+            {/* Viewport 1: Input camera view */}
+            {isLive ? (
+              <div className="border border-brand-border rounded-xl bg-[#030712] aspect-video overflow-hidden relative" style={{ perspective: "800px" }}>
+                {/* Corner HUD Brackets */}
+                <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-cyan-500/50 pointer-events-none z-20" />
+                <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-cyan-500/50 pointer-events-none z-20" />
+                <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-cyan-500/50 pointer-events-none z-20" />
+                <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-cyan-500/50 pointer-events-none z-20" />
+                
+                {/* HUD Header */}
+                <div className="absolute top-3 left-3 font-mono text-[9px] text-cyan-400/80 bg-[#0c1020]/90 px-2 py-0.5 rounded border border-brand-border/60 pointer-events-none tracking-widest z-20">
+                  LIVE_CAM_3D // ACTIVE_LINE // {conveyorHalted ? "HALTED" : "RUNNING"}
                 </div>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="absolute inset-0 opacity-0 cursor-pointer z-30"
-              />
-            </div>
+                <div className="absolute top-3 right-3 font-mono text-[9px] text-emerald-400/80 bg-[#0c1020]/90 px-2 py-0.5 rounded border border-brand-border/60 pointer-events-none tracking-widest z-20">
+                  FPS: 30
+                </div>
 
-            {/* Inferences feedback view */}
+                {/* 3D Conveyor Track Simulator */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <div 
+                    className="w-[120%] h-[30%] bg-[#1e293b]/30 border-t border-b border-cyan-500/30 relative overflow-hidden"
+                    style={{
+                      transform: "rotateX(55deg) rotateZ(-12deg) translateY(20px)",
+                      transformStyle: "preserve-3d",
+                      boxShadow: "0 10px 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(6,182,212,0.15)"
+                    }}
+                  >
+                    {!conveyorHalted && (
+                      <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_45%,#0f172a_50%,transparent_55%)] bg-[size:40px_100%] animate-conveyor-move" />
+                    )}
+
+                    {/* Sliding Cylinder Part */}
+                    {!conveyorHalted && (
+                      <div 
+                        className="absolute top-1/2 -translate-y-1/2 w-10 h-10 bg-gradient-to-br from-slate-300 to-slate-600 rounded-full border border-slate-400"
+                        style={{
+                          left: `${livePartPos}%`,
+                          transform: "translateZ(10px) rotateX(-20deg)",
+                          boxShadow: "0 8px 16px rgba(0,0,0,0.6), inset -2px -2px 6px rgba(0,0,0,0.8)"
+                        }}
+                      >
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-slate-950 rounded-full border border-slate-500" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Red Scanning Laser */}
+                <div className={`absolute top-0 bottom-0 w-0.5 left-1/2 -translate-x-1/2 pointer-events-none z-15 transition-all duration-100 ${
+                  livePartPos >= 48 && livePartPos <= 52 
+                    ? "bg-emerald-400 shadow-[0_0_15px_#10b981] opacity-100" 
+                    : "bg-rose-500 shadow-[0_0_8px_#f43f5e] opacity-60"
+                }`} />
+
+                {/* Active Tracking Ring Box */}
+                {!conveyorHalted && livePartPos > 50 && livePartPos < 95 && (
+                  <div 
+                    className="absolute w-12 h-12 border-2 rounded pointer-events-none z-20"
+                    style={{ 
+                      top: "38%", 
+                      left: `${livePartPos - 2}%`,
+                      borderColor: liveStatus === "PASS" ? "#10b981" : "#f43f5e",
+                      boxShadow: liveStatus === "PASS" ? "0 0 10px rgba(16, 185, 129, 0.4)" : "0 0 10px rgba(244, 63, 94, 0.4)"
+                    }}
+                  >
+                    <span className="text-[6px] text-white font-bold bg-[#0c1020]/95 px-1 py-0.5 rounded border tracking-tight whitespace-nowrap self-start -mt-5 absolute">
+                      {liveStatus === "PASS" ? "PART_OK" : "DEFECT_WARN"}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="border border-brand-border rounded-xl bg-brand-bg/50 aspect-video flex flex-col items-center justify-center overflow-hidden relative">
+                {/* Corner HUD Brackets */}
+                <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-cyan-500/50 pointer-events-none z-20" />
+                <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-cyan-500/50 pointer-events-none z-20" />
+                <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-cyan-500/50 pointer-events-none z-20" />
+                <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-cyan-500/50 pointer-events-none z-20" />
+
+                {/* HUD Header */}
+                <div className="absolute top-3 left-3 font-mono text-[9px] text-cyan-400/80 bg-brand-bg/90 px-2 py-0.5 rounded border border-brand-border/60 pointer-events-none tracking-widest z-20">
+                  CAM_04 // GANTRY_VIEW // 30FPS
+                </div>
+
+                {/* Center Crosshair Target */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20 opacity-30 flex items-center justify-center">
+                  <div className="h-10 w-10 border border-dashed border-cyan-400 rounded-full animate-pulse" />
+                  <div className="absolute h-14 w-px bg-cyan-400" />
+                  <div className="absolute w-14 h-px bg-cyan-400" />
+                </div>
+
+                {/* Laser Scanline */}
+                {previewUrl && <div className="animate-laser-scan" />}
+
+                {previewUrl ? (
+                  <img src={previewUrl} alt="Inspection Telemetry" className="absolute inset-0 h-full w-full object-cover" />
+                ) : (
+                  <div className="text-center space-y-2 z-10">
+                    <Upload className="h-8 w-8 text-slate-500 mx-auto" />
+                    <p className="text-xs text-slate-400">Select a part image or drag file here</p>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 opacity-0 cursor-pointer z-30"
+                />
+              </div>
+            )}
+
+            {/* Viewport 2: Inferences feedback view */}
             <div className="border border-brand-border rounded-xl bg-brand-bg/50 aspect-video flex flex-col items-center justify-center overflow-hidden relative">
               {/* Corner HUD Brackets */}
               <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-cyan-500/50 pointer-events-none z-20" />
@@ -298,6 +489,79 @@ export default function QualityDashboard() {
                 <div className="text-center space-y-2 text-cyan-400 font-semibold text-xs z-10">
                   <Camera className="h-8 w-8 animate-spin mx-auto text-cyan-400" />
                   <span>Processing CV Analysis...</span>
+                </div>
+              ) : isLive ? (
+                /* Live analysis viewport */
+                <div className="absolute inset-0 h-full w-full bg-[#030712]" style={{ perspective: "800px" }}>
+                  {/* Identical 3D Conveyor Base */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <div 
+                      className="w-[120%] h-[30%] bg-[#1e293b]/30 border-t border-b border-cyan-500/30 relative overflow-hidden"
+                      style={{
+                        transform: "rotateX(55deg) rotateZ(-12deg) translateY(20px)",
+                        transformStyle: "preserve-3d"
+                      }}
+                    >
+                      {!conveyorHalted && (
+                        <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_45%,#0f172a_50%,transparent_55%)] bg-[size:40px_100%] animate-conveyor-move" />
+                      )}
+
+                      {!conveyorHalted && (
+                        <div 
+                          className="absolute top-1/2 -translate-y-1/2 w-10 h-10 bg-gradient-to-br from-slate-300 to-slate-600 rounded-full border border-slate-400"
+                          style={{
+                            left: `${livePartPos}%`,
+                            transform: "translateZ(10px) rotateX(-20deg)",
+                            boxShadow: "0 8px 16px rgba(0,0,0,0.6)"
+                          }}
+                        >
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-slate-950 rounded-full border border-slate-500" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Laser line overlay */}
+                  <div className={`absolute top-0 bottom-0 w-0.5 left-1/2 -translate-x-1/2 pointer-events-none z-15 transition-all duration-100 ${
+                    livePartPos >= 48 && livePartPos <= 52 ? "bg-emerald-400 shadow-[0_0_15px_#10b981]" : "bg-rose-500 shadow-[0_0_8px_#f43f5e]"
+                  }`} />
+
+                  {/* Bounding box tracking box */}
+                  {!conveyorHalted && livePartPos > 50 && livePartPos < 95 && (
+                    <div className="absolute inset-0 pointer-events-none z-25">
+                      {liveStatus === "FAIL" ? (
+                        <div 
+                          className="absolute border-2 border-rose-500 rounded animate-pulse"
+                          style={{ 
+                            top: "35%", 
+                            left: `${livePartPos - 4}%`,
+                            width: "16%",
+                            height: "22%",
+                            boxShadow: "0 0 12px rgba(239, 68, 68, 0.7)"
+                          }}
+                        >
+                          <div className="absolute -top-6 left-0 bg-rose-950/95 border border-rose-500 text-rose-400 font-bold text-[6px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap">
+                            ⚠️ {liveDefect.replace("_", " ")}
+                          </div>
+                        </div>
+                      ) : (
+                        <div 
+                          className="absolute border-2 border-emerald-500 rounded"
+                          style={{ 
+                            top: "35%", 
+                            left: `${livePartPos - 4}%`,
+                            width: "16%",
+                            height: "22%",
+                            boxShadow: "0 0 12px rgba(16, 185, 129, 0.4)"
+                          }}
+                        >
+                          <div className="absolute -top-6 left-0 bg-emerald-950/95 border border-emerald-500 text-emerald-400 font-bold text-[6px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap">
+                            ✅ PASS // OK
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : inspectionResult ? (
                 <div className="absolute inset-0 h-full w-full">
