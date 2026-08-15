@@ -37,8 +37,13 @@ export default function QualityDashboard() {
 
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [inspectionResult, setInspectionResult] = useState<InspectionResult | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>("/datasets/demo_images/machined_part_inspection.jpg");
+  const [inspectionResult, setInspectionResult] = useState<InspectionResult | null>({
+    status: "PASS",
+    defect_type: "NONE",
+    confidence_score: 0.98,
+    image_path: "/datasets/demo_images/machined_part_inspection.jpg"
+  });
 
   const fetchStats = () => {
     fetch("/api/v1/quality/stats", {
@@ -145,7 +150,7 @@ export default function QualityDashboard() {
       status,
       defect_type,
       confidence_score: 0.95 + Math.random() * 0.04,
-      image_path: previewUrl || ""
+      image_path: "/datasets/demo_images/machined_part_inspection.jpg"
     });
   };
 
@@ -153,7 +158,7 @@ export default function QualityDashboard() {
   const inspectDemoPart = async (partName: string) => {
     setLoading(true);
     setInspectionResult(null);
-    setPreviewUrl(`/datasets/demo_images/${partName}`);
+    setPreviewUrl("/datasets/demo_images/machined_part_inspection.jpg");
     
     try {
       // Fetch part image as blob
@@ -238,11 +243,32 @@ export default function QualityDashboard() {
           {/* Interactive Bounding box / Image side by side */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
             {/* Input camera view */}
-            <div className="border border-brand-border rounded-xl bg-brand-bg/50 aspect-video flex flex-col items-center justify-center p-4 overflow-hidden relative">
+            <div className="border border-brand-border rounded-xl bg-brand-bg/50 aspect-video flex flex-col items-center justify-center overflow-hidden relative">
+              {/* Corner HUD Brackets */}
+              <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-cyan-500/50 pointer-events-none z-20" />
+              <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-cyan-500/50 pointer-events-none z-20" />
+              <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-cyan-500/50 pointer-events-none z-20" />
+              <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-cyan-500/50 pointer-events-none z-20" />
+
+              {/* HUD Header */}
+              <div className="absolute top-3 left-3 font-mono text-[9px] text-cyan-400/80 bg-brand-bg/90 px-2 py-0.5 rounded border border-brand-border/60 pointer-events-none tracking-widest z-20">
+                CAM_04 // GANTRY_VIEW // 30FPS
+              </div>
+
+              {/* Center Crosshair Target */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20 opacity-30 flex items-center justify-center">
+                <div className="h-10 w-10 border border-dashed border-cyan-400 rounded-full animate-pulse" />
+                <div className="absolute h-14 w-px bg-cyan-400" />
+                <div className="absolute w-14 h-px bg-cyan-400" />
+              </div>
+
+              {/* Laser Scanline */}
+              {previewUrl && <div className="animate-laser-scan" />}
+
               {previewUrl ? (
-                <img src={previewUrl} alt="Inspection Telemetry" className="h-full w-full object-contain rounded-lg" />
+                <img src={previewUrl} alt="Inspection Telemetry" className="absolute inset-0 h-full w-full object-cover" />
               ) : (
-                <div className="text-center space-y-2">
+                <div className="text-center space-y-2 z-10">
                   <Upload className="h-8 w-8 text-slate-500 mx-auto" />
                   <p className="text-xs text-slate-400">Select a part image or drag file here</p>
                 </div>
@@ -251,43 +277,116 @@ export default function QualityDashboard() {
                 type="file"
                 accept="image/*"
                 onChange={handleFileChange}
-                className="absolute inset-0 opacity-0 cursor-pointer"
+                className="absolute inset-0 opacity-0 cursor-pointer z-30"
               />
             </div>
 
             {/* Inferences feedback view */}
-            <div className="border border-brand-border rounded-xl bg-brand-bg/50 aspect-video flex flex-col items-center justify-center p-4 overflow-hidden relative">
+            <div className="border border-brand-border rounded-xl bg-brand-bg/50 aspect-video flex flex-col items-center justify-center overflow-hidden relative">
+              {/* Corner HUD Brackets */}
+              <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-cyan-500/50 pointer-events-none z-20" />
+              <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-cyan-500/50 pointer-events-none z-20" />
+              <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-cyan-500/50 pointer-events-none z-20" />
+              <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-cyan-500/50 pointer-events-none z-20" />
+
+              {/* HUD Header */}
+              <div className="absolute top-3 left-3 font-mono text-[9px] text-cyan-400/80 bg-brand-bg/90 px-2 py-0.5 rounded border border-brand-border/60 pointer-events-none tracking-widest z-20">
+                CAM_04 // CV_INFERENCE_HUD
+              </div>
+
               {loading ? (
-                <div className="text-center space-y-2 text-cyan-400 font-semibold text-xs">
+                <div className="text-center space-y-2 text-cyan-400 font-semibold text-xs z-10">
                   <Camera className="h-8 w-8 animate-spin mx-auto text-cyan-400" />
                   <span>Processing CV Analysis...</span>
                 </div>
               ) : inspectionResult ? (
-                <div className="h-full w-full flex flex-col">
-                  <img src={inspectionResult.image_path} alt="CV Overlay Inferences" className="flex-1 w-full object-contain rounded-lg mb-2" />
-                  <div className="flex justify-between items-center bg-brand-card p-2 rounded-lg border border-brand-border">
-                    <div>
-                      <span className="text-[9px] text-slate-400 uppercase font-semibold">Defect Category</span>
-                      <p className="text-xs font-bold text-white">{inspectionResult.defect_type.replace("_", " ")}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[9px] text-slate-400 uppercase font-semibold">Status / Conf</span>
-                      <p className={`text-xs font-bold ${
-                        inspectionResult.status === "PASS" ? "text-emerald-400" : "text-rose-400"
-                      }`}>
-                        {inspectionResult.status} ({Math.round(inspectionResult.confidence_score * 100)}%)
-                      </p>
-                    </div>
+                <div className="absolute inset-0 h-full w-full">
+                  <img src={inspectionResult.image_path} alt="CV Overlay Inferences" className="h-full w-full object-cover" />
+                  
+                  {/* Dynamic Bounding Box Overlay */}
+                  <div className="absolute inset-0 pointer-events-none z-25">
+                    {/* Surface Crack */}
+                    {inspectionResult.defect_type === "SURFACE_CRACK" && (
+                      <div 
+                        className="absolute border-2 border-rose-500 rounded animate-pulse"
+                        style={{ top: "35%", left: "40%", width: "20%", height: "25%", boxShadow: "0 0 15px rgba(239, 68, 68, 0.7)" }}
+                      >
+                        <div className="absolute -top-6 left-0 bg-rose-950/90 border border-rose-500 text-rose-400 font-bold text-[8px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap">
+                          ⚠️ [CRITICAL] SURFACE_CRACK (96% CONF)
+                        </div>
+                      </div>
+                    )}
+                    {/* Label Missing */}
+                    {inspectionResult.defect_type === "LABEL_MISSING" && (
+                      <div 
+                        className="absolute border-2 border-amber-500 rounded animate-pulse"
+                        style={{ top: "25%", left: "60%", width: "22%", height: "30%", boxShadow: "0 0 15px rgba(245, 158, 11, 0.7)" }}
+                      >
+                        <div className="absolute -top-6 left-0 bg-amber-950/90 border border-amber-500 text-amber-400 font-bold text-[8px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap">
+                          ⚠️ [MISSING] SERIAL_LABEL (94% CONF)
+                        </div>
+                      </div>
+                    )}
+                    {/* Wrong Color */}
+                    {inspectionResult.defect_type === "WRONG_COLOR" && (
+                      <div 
+                        className="absolute border-2 border-yellow-400 rounded animate-pulse"
+                        style={{ top: "20%", left: "30%", width: "35%", height: "45%", boxShadow: "0 0 15px rgba(250, 204, 21, 0.7)" }}
+                      >
+                        <div className="absolute -top-6 left-0 bg-yellow-950/90 border border-yellow-400 text-yellow-400 font-bold text-[8px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap">
+                          ⚠️ [WARNING] COLOR_MISMATCH (92% CONF)
+                        </div>
+                      </div>
+                    )}
+                    {/* Wrong Dimension */}
+                    {inspectionResult.defect_type === "WRONG_DIMENSION" && (
+                      <div 
+                        className="absolute border-2 border-cyan-400 rounded animate-pulse"
+                        style={{ top: "15%", left: "25%", width: "50%", height: "65%", boxShadow: "0 0 15px rgba(6, 182, 212, 0.7)" }}
+                      >
+                        <div className="absolute -top-6 left-0 bg-cyan-950/90 border border-cyan-400 text-cyan-400 font-bold text-[8px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap">
+                          📏 [OUT OF SPEC] Δy +1.2mm (95% CONF)
+                        </div>
+                      </div>
+                    )}
+                    {/* Pass State */}
+                    {inspectionResult.status === "PASS" && (
+                      <div 
+                        className="absolute border-2 border-emerald-500 rounded"
+                        style={{ top: "15%", left: "20%", width: "60%", height: "70%", boxShadow: "0 0 15px rgba(16, 185, 129, 0.35)" }}
+                      >
+                        <div className="absolute top-2 right-2 bg-emerald-950/90 border border-emerald-500 text-emerald-400 font-black text-[9px] px-2 py-0.5 rounded shadow-lg">
+                          ✅ PASS // INTEGRITY CHECK OK
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
-                <div className="text-slate-500 text-center text-xs flex items-center gap-1">
+                <div className="text-slate-500 text-center text-xs flex items-center gap-1 z-10">
                   <HelpCircle className="h-4 w-4" />
                   Waiting for inspection execution
                 </div>
               )}
             </div>
           </div>
+
+          {inspectionResult && !loading && (
+            <div className="grid grid-cols-2 gap-4 bg-brand-bg/60 p-3 rounded-xl border border-brand-border text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400 font-semibold uppercase tracking-wider text-[9px]">Last Inspection Result</span>
+                <span className={`font-bold ${inspectionResult.status === "PASS" ? "text-emerald-400" : "text-rose-400"}`}>
+                  {inspectionResult.status}
+                </span>
+              </div>
+              <div className="flex items-center justify-between border-l border-brand-border pl-4">
+                <span className="text-slate-400 font-semibold uppercase tracking-wider text-[9px]">Defect Type / Conf</span>
+                <span className="text-white font-bold">
+                  {inspectionResult.defect_type.replace("_", " ")} ({Math.round(inspectionResult.confidence_score * 100)}%)
+                </span>
+              </div>
+            </div>
+          )}
 
           {selectedFile && !inspectionResult && !loading && (
             <button

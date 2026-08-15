@@ -152,3 +152,27 @@
 .animate-conveyor-move {
   animation: conveyor-move 8s linear infinite;
 }
+
+@keyframes laser-scan {
+  0% {
+    top: 0%;
+  }
+  50% {
+    top: 100%;
+  }
+  100% {
+    top: 0%;
+  }
+}
+
+.animate-laser-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.8), transparent);
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
+  animation: laser-scan 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 10;
+}
