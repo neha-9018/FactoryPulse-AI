@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../App";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { 
-  Camera, Upload, AlertOctagon, HelpCircle, Play, Pause, Square, 
+  Camera, Upload, AlertOctagon, HelpCircle, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, Check, X, ShieldAlert, Cpu, Activity,
-  Info
+  Info, Sparkles, RefreshCw
 } from "lucide-react";
 
 interface QualityStats {
@@ -32,13 +31,13 @@ interface RecentLog {
 export default function QualityDashboard() {
   const { token } = useAuth();
   const [stats, setStats] = useState<QualityStats>({
-    total_inspected: 1561,
-    passed_count: 1498,
-    failed_count: 63,
-    pass_rate: 95.96,
+    total_inspected: 1573,
+    passed_count: 1509,
+    failed_count: 64,
+    pass_rate: 95.93,
     defect_distribution: {
       LABEL_MISSING: 12,
-      SURFACE_CRACK: 18,
+      SURFACE_CRACK: 19,
       DAMAGE: 8,
       WRONG_COLOR: 15,
       WRONG_PACKAGING: 3,
@@ -70,11 +69,11 @@ export default function QualityDashboard() {
 
   // Recent Inspection List logs state
   const [recentLogs, setRecentLogs] = useState<RecentLog[]>([
-    { id: "M-1560", part_name: "CYLINDER_BRACKET", status: "PASS", timestamp: "14:58:30" },
-    { id: "M-1559", part_name: "SPINDLE_SEAL", status: "FAIL", timestamp: "14:57:42" },
-    { id: "M-1558", part_name: "CYLINDER_BRACKET", status: "PASS", timestamp: "14:56:11" },
-    { id: "M-1557", part_name: "HOUSING_PLUG", status: "PASS", timestamp: "14:55:03" },
-    { id: "M-1556", part_name: "HOUSING_PLUG", status: "FAIL", timestamp: "14:54:19" }
+    { id: "M-1573", part_name: "CYLINDER_BRACKET", status: "PASS", timestamp: "3:04:23" },
+    { id: "M-1572", part_name: "CYLINDER_BRACKET", status: "PASS", timestamp: "3:04:21" },
+    { id: "M-1571", part_name: "CYLINDER_BRACKET", status: "PASS", timestamp: "3:04:18" },
+    { id: "M-1570", part_name: "SPINDLE_SEAL", status: "FAIL", timestamp: "3:03:52" },
+    { id: "M-1569", part_name: "HOUSING_PLUG", status: "PASS", timestamp: "3:03:03" }
   ]);
 
   const fetchStats = () => {
@@ -307,130 +306,116 @@ export default function QualityDashboard() {
     return () => clearInterval(interval);
   }, [isLive, liveStatus, liveDefect, conveyorHalted, playbackSpeed, stats.total_inspected]);
 
-  // Recharts Chart Config
-  const chartData = Object.entries(stats.defect_distribution)
-    .filter(([_, value]) => value > 0)
-    .map(([key, value]) => ({ name: key.replace("_", " "), value }));
-
-  const COLORS = ["#38bdf8", "#818cf8", "#f43f5e", "#f59e0b", "#10b981", "#a855f7"];
-
   return (
     <div className="space-y-5 text-slate-200">
       
-      {/* Top Banner Alert if Conveyor is Halted */}
-      {isLive && conveyorHalted && (
-        <div className="p-3.5 bg-rose-950/80 border-2 border-rose-500 rounded-xl flex items-center justify-between shadow-2xl animate-pulse text-xs">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-rose-500/20 rounded-lg text-rose-500">
-              <ShieldAlert className="h-5 w-5" />
-            </div>
-            <div>
-              <h4 className="font-bold text-white uppercase tracking-wide">SCADA Safe Shutdown Interlock Active</h4>
-              <p className="text-rose-300 text-[10px]">Conveyor belt halted automatically after 3 consecutive defect check failures. Machine recalibration required.</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => { setConveyorHalted(false); setRecentFailures([]); setLivePartPos(0); }}
-            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg transition"
-          >
-            Reset Conveyor PLC
-          </button>
-        </div>
-      )}
+      {/* 3-COLUMN LAYOUT GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-10 gap-5 items-stretch">
 
-      {/* Main 3-Column Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-10 gap-5">
-
-        {/* LEFT COLUMN: Stats and Presets (30% / 3 Cols) */}
-        <div className="lg:col-span-3 space-y-4 flex flex-col">
+        {/* LEFT COLUMN: Warnings, Action panel (30% / 3 Cols) */}
+        <div className="lg:col-span-3 space-y-4 flex flex-col justify-between">
           
-          {/* KPI Dashboard Panel */}
-          <div className="p-4 glass-card border border-brand-border rounded-2xl space-y-4">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-              <Activity className="h-3.5 w-3.5 text-cyan-400" />
-              Inspection Dashboard
-            </h3>
-            
-            <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="p-2.5 bg-brand-bg/50 border border-brand-border/60 rounded-xl">
-                <span className="text-[9px] text-slate-400 uppercase font-semibold">Total Inspected</span>
-                <p className="text-lg font-black text-white mt-0.5">{stats.total_inspected}</p>
-              </div>
-              <div className="p-2.5 bg-brand-bg/50 border border-brand-border/60 rounded-xl">
-                <span className="text-[9px] text-slate-400 uppercase font-semibold">Pass Rate</span>
-                <p className="text-lg font-black text-emerald-400 mt-0.5">{stats.pass_rate}%</p>
-              </div>
-              <div className="p-2.5 bg-brand-bg/50 border border-brand-border/60 rounded-xl">
-                <span className="text-[9px] text-slate-400 uppercase font-semibold">Passed Yield</span>
-                <p className="text-lg font-black text-emerald-400 mt-0.5">{stats.passed_count}</p>
-              </div>
-              <div className="p-2.5 bg-brand-bg/50 border border-brand-border/60 rounded-xl">
-                <span className="text-[9px] text-slate-400 uppercase font-semibold">Fail Count</span>
-                <p className="text-lg font-black text-rose-500 mt-0.5">{stats.failed_count}</p>
-              </div>
-            </div>
+          {/* Section: Title */}
+          <div>
+            <h2 className="text-xl font-bold text-white tracking-wide">FactoryPulse AI</h2>
+            <p className="text-slate-400 text-[10px] uppercase font-mono tracking-widest mt-0.5">Quality Inspection HUD</p>
           </div>
 
-          {/* Preset parts selector */}
-          {!isLive && (
-            <div className="p-4 glass-card border border-brand-border rounded-2xl space-y-3">
-              <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Inspect Seeded Parts</span>
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => inspectDemoPart("healthy_part.png")} className="px-2.5 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-[10px] rounded-lg text-emerald-400 font-semibold transition">
-                  Healthy Part
-                </button>
-                <button onClick={() => inspectDemoPart("label_missing.png")} className="px-2.5 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-[10px] rounded-lg text-rose-400 font-semibold transition">
-                  Missing Label
-                </button>
-                <button onClick={() => inspectDemoPart("surface_crack.png")} className="px-2.5 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-[10px] rounded-lg text-rose-400 font-semibold transition">
-                  Surface Crack
-                </button>
-                <button onClick={() => inspectDemoPart("wrong_color.png")} className="px-2.5 py-1.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-[10px] rounded-lg text-rose-400 font-semibold transition">
-                  Wrong Color
-                </button>
+          {/* Prominent SCADA Warning alert */}
+          <div className={`p-4 rounded-2xl border flex flex-col justify-between flex-1 min-h-[160px] transition-all duration-300 ${
+            isLive && conveyorHalted 
+              ? "bg-rose-950/80 border-rose-500 shadow-[0_0_20px_rgba(239,68,68,0.3)] animate-pulse" 
+              : "bg-brand-card/50 border-brand-border/60 backdrop-blur-md"
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className={`p-2.5 rounded-xl ${
+                isLive && conveyorHalted ? "bg-rose-500/20 text-rose-500" : "bg-cyan-500/10 text-cyan-400"
+              }`}>
+                <ShieldAlert className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-white text-xs uppercase tracking-wider">SCADA Interlock Loop</h4>
+                <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                  {isLive && conveyorHalted 
+                    ? "SYSTEM LOCKED: 3 consecutive defective parts triggered a gantry safe shutdown. Calibrate toolings." 
+                    : "SCADA systems are active. Conveyor safety trip limits are online (Consecutive failure limit: 3)."}
+                </p>
               </div>
             </div>
-          )}
-
-          {/* Recent results logs */}
-          <div className="p-4 glass-card border border-brand-border rounded-2xl space-y-3 flex-1 flex flex-col justify-between">
-            <div>
-              <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider block mb-2">Recent Checks Logs</span>
-              <div className="space-y-2">
-                {recentLogs.map((log, idx) => (
-                  <div key={idx} className="flex justify-between items-center bg-brand-bg/40 p-2 rounded-lg border border-brand-border/40 text-[10px]">
-                    <div className="flex items-center gap-2">
-                      <span className={`h-1.5 w-1.5 rounded-full ${log.status === "PASS" ? "bg-emerald-400" : "bg-rose-500 animate-pulse"}`} />
-                      <span className="font-mono text-slate-400">{log.id}</span>
-                      <span className="font-semibold text-white truncate max-w-[80px]">{log.part_name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-500 font-mono text-[9px]">{log.timestamp}</span>
-                      <span className={`font-bold ${log.status === "PASS" ? "text-emerald-400" : "text-rose-500"}`}>{log.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Static Action Upload file bar */}
-            {!isLive && (
-              <div className="relative border border-dashed border-brand-border/60 rounded-xl bg-brand-bg/50 p-2 text-center hover:bg-brand-border/20 transition cursor-pointer mt-4">
-                <Upload className="h-4 w-4 text-cyan-400 mx-auto mb-1" />
-                <span className="text-[9px] text-slate-400 block font-semibold">Select / Drag Custom Image</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer z-30"
-                />
-              </div>
+            
+            {isLive && conveyorHalted && (
+              <button 
+                onClick={() => { setConveyorHalted(false); setRecentFailures([]); setLivePartPos(0); }}
+                className="w-full h-12 min-h-[48px] bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1.5"
+              >
+                <RefreshCw className="h-4 w-4" /> Reset Conveyor PLC
+              </button>
             )}
           </div>
+
+          {/* Quick Actions (glove friendly 48px buttons) */}
+          <div className="p-4 glass-card border border-brand-border rounded-2xl space-y-3">
+            <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider block">Quick Actions Control</span>
+            <div className="flex flex-col gap-2">
+              
+              {!isLive ? (
+                /* Run CV button for static */
+                selectedFile && !inspectionResult && !loading ? (
+                  <button 
+                    onClick={() => executeInspection(selectedFile)}
+                    className="w-full h-12 min-h-[48px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2"
+                  >
+                    <Activity className="h-4 w-4" /> Execute CV Analysis
+                  </button>
+                ) : (
+                  <div className="relative w-full h-12 min-h-[48px] bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+                    <Upload className="h-4 w-4" />
+                    <span>Upload Part Image</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-30"
+                    />
+                  </div>
+                )
+              ) : (
+                /* Capture frame button for live */
+                <button 
+                  onClick={() => {
+                    if (!conveyorHalted) {
+                      setInspectionResult({
+                        status: liveStatus,
+                        defect_type: liveDefect,
+                        confidence_score: 0.93 + Math.random() * 0.05,
+                        image_path: "/datasets/demo_images/machined_part_inspection.jpg"
+                      });
+                    }
+                  }}
+                  disabled={conveyorHalted}
+                  className="w-full h-12 min-h-[48px] bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2"
+                >
+                  <Camera className="h-4 w-4" /> Capture New Inspection
+                </button>
+              )}
+
+              {/* Preset buttons */}
+              {!isLive && (
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <button onClick={() => inspectDemoPart("healthy_part.png")} className="py-2.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-[9px] rounded-lg text-emerald-400 font-bold transition">
+                    Healthy Part (PASS)
+                  </button>
+                  <button onClick={() => inspectDemoPart("surface_crack.png")} className="py-2.5 bg-brand-bg hover:bg-brand-border border border-brand-border text-[9px] rounded-lg text-rose-400 font-bold transition">
+                    Surface Crack (FAIL)
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* CENTER COLUMN: Live view HUD (40% / 4 Cols) */}
-        <div className="lg:col-span-4 glass-card border border-brand-border rounded-2xl p-4 space-y-4">
+        {/* CENTER COLUMN: Big Image Viewport & Live feeds (40% / 4 Cols) */}
+        <div className="lg:col-span-4 glass-card border border-brand-border rounded-2xl p-4 flex flex-col justify-between space-y-4">
           
           <div className="flex justify-between items-center">
             <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
@@ -438,24 +423,24 @@ export default function QualityDashboard() {
               📷 Inspection View
             </h3>
             
-            {/* Toggle block */}
+            {/* Viewport switch toggle */}
             <div className="flex bg-brand-bg rounded-lg p-0.5 border border-brand-border">
               <button 
                 onClick={() => { setIsLive(false); setInspectionResult(null); }}
-                className={`px-2.5 py-1 rounded font-semibold text-[10px] transition ${!isLive ? "bg-cyan-600 text-white" : "text-slate-400 hover:text-slate-200"}`}
+                className={`px-3 py-1 rounded font-bold text-[9px] transition ${!isLive ? "bg-cyan-600 text-white" : "text-slate-400 hover:text-slate-200"}`}
               >
                 Static View
               </button>
               <button 
                 onClick={() => { setIsLive(true); setConveyorHalted(false); setLivePartPos(0); }}
-                className={`px-2.5 py-1 rounded font-semibold text-[10px] transition ${isLive ? "bg-cyan-600 text-white" : "text-slate-400 hover:text-slate-200"}`}
+                className={`px-3 py-1 rounded font-bold text-[9px] transition ${isLive ? "bg-cyan-600 text-white" : "text-slate-400 hover:text-slate-200"}`}
               >
                 Live 3D View
               </button>
             </div>
           </div>
 
-          {/* Interactive Bounding box / Image display area */}
+          {/* Interactive Bounding box/Image canvas display */}
           <div className="border border-brand-border rounded-xl bg-[#030712] aspect-video overflow-hidden relative" style={{ perspective: "800px" }}>
             {/* Corner HUD Brackets */}
             <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-cyan-500/50 pointer-events-none z-20" />
@@ -463,12 +448,12 @@ export default function QualityDashboard() {
             <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-cyan-500/50 pointer-events-none z-20" />
             <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-cyan-500/50 pointer-events-none z-20" />
             
-            {/* HUD Status Banners */}
-            <div className="absolute top-3 left-3 font-mono text-[9px] text-cyan-400/80 bg-[#0c1020]/90 px-2 py-0.5 rounded border border-brand-border/60 pointer-events-none tracking-widest z-20">
+            {/* HUD headers */}
+            <div className="absolute top-3 left-3 font-mono text-[8px] text-cyan-400/80 bg-[#0c1020]/90 px-2 py-0.5 rounded border border-brand-border/60 pointer-events-none tracking-widest z-20">
               {isLive ? "LIVE_GANTRY_CAMERA" : "STATIC_CAPTURE"}
             </div>
             {isLive && (
-              <div className="absolute top-3 right-3 font-mono text-[9px] text-emerald-400/80 bg-[#0c1020]/90 px-2 py-0.5 rounded border border-brand-border/60 pointer-events-none tracking-widest z-20">
+              <div className="absolute top-3 right-3 font-mono text-[8px] text-emerald-400/80 bg-[#0c1020]/90 px-2 py-0.5 rounded border border-brand-border/60 pointer-events-none tracking-widest z-20">
                 {conveyorHalted ? "SCADA_HALT" : "CONVEYOR_30FPS"}
               </div>
             )}
@@ -479,7 +464,7 @@ export default function QualityDashboard() {
               style={{ transform: `scale(${zoomLevel})` }}
             >
               {isLive ? (
-                /* Live 3D Conveyor */
+                /* Live 3D conveyor track */
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <div 
                     className="w-[120%] h-[30%] bg-[#1e293b]/30 border-t border-b border-cyan-500/30 relative overflow-hidden"
@@ -493,7 +478,7 @@ export default function QualityDashboard() {
                       <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_45%,#0f172a_50%,transparent_55%)] bg-[size:40px_100%] animate-conveyor-move" />
                     )}
 
-                    {/* Cylinder */}
+                    {/* Sliding part cylinder */}
                     {!conveyorHalted && (
                       <div 
                         className="absolute top-1/2 -translate-y-1/2 w-12 h-12 bg-gradient-to-br from-slate-300 to-slate-600 rounded-full border border-slate-400"
@@ -511,39 +496,39 @@ export default function QualityDashboard() {
               ) : (
                 /* Static Image rendering with HUD Scan */
                 <div className="absolute inset-0">
-                  {previewUrl && <img src={previewUrl} alt="Part Visual" className="w-full h-full object-cover" />}
+                  {previewUrl && <img src={previewUrl} alt="Inspection capture" className="w-full h-full object-cover" />}
                   {previewUrl && <div className="animate-laser-scan" />}
                 </div>
               )}
             </div>
 
-            {/* Dotted target center scanner line */}
+            {/* Vertical red scanning laser */}
             <div className={`absolute top-0 bottom-0 w-0.5 left-1/2 -translate-x-1/2 pointer-events-none z-15 transition-all duration-100 ${
               isLive && livePartPos >= 48 && livePartPos <= 52 
                 ? "bg-emerald-400 shadow-[0_0_15px_#10b981]" 
                 : "bg-rose-500 shadow-[0_0_8px_#f43f5e]"
             }`} />
 
-            {/* Target Ring crosshair */}
+            {/* Dotted target center crosshair */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20 opacity-20 flex items-center justify-center">
               <div className="h-12 w-12 border border-dashed border-cyan-400 rounded-full animate-pulse" />
               <div className="absolute h-16 w-px bg-cyan-400" />
               <div className="absolute w-16 h-px bg-cyan-400" />
             </div>
 
-            {/* Dynamic Defect box bounds for live tracking */}
+            {/* Active tracking ring overlay for live conveyor parts */}
             {isLive && !conveyorHalted && livePartPos > 50 && livePartPos < 95 && (
               <div 
-                className="absolute w-16 h-16 border-2 rounded pointer-events-none z-20"
+                className="absolute w-14 h-12 border-2 rounded pointer-events-none z-20 flex flex-col justify-between"
                 style={{ 
-                  top: "35%", 
-                  left: `${livePartPos - 3}%`,
+                  top: "38%", 
+                  left: `${livePartPos - 2}%`,
                   borderColor: liveStatus === "PASS" ? "#10b981" : "#f43f5e",
                   boxShadow: liveStatus === "PASS" ? "0 0 10px rgba(16, 185, 129, 0.4)" : "0 0 10px rgba(244, 63, 94, 0.4)"
                 }}
               >
                 <span className="text-[6px] text-white font-bold bg-[#0c1020]/95 px-1 py-0.5 rounded border tracking-tight whitespace-nowrap absolute -mt-5">
-                  {liveStatus === "PASS" ? "STATUS: OK" : `ALERT: ${liveDefect}`}
+                  {liveStatus === "PASS" ? "OK // TEST_PASS" : `WARN // ${liveDefect}`}
                 </span>
               </div>
             )}
@@ -590,146 +575,143 @@ export default function QualityDashboard() {
             )}
           </div>
 
-          {/* Interactive Bounding box controls */}
-          <div className="flex justify-between items-center bg-brand-bg/50 p-2.5 rounded-xl border border-brand-border text-xs">
-            <div className="flex items-center gap-1">
-              <span className="text-slate-400 font-semibold text-[10px] uppercase">Inspection Status:</span>
-              {inspectionResult ? (
-                <span className={`font-bold ${inspectionResult.status === "PASS" ? "text-emerald-400" : "text-rose-400"}`}>
+          {/* Zoom controls & Inferences display footer */}
+          <div className="flex justify-between items-center bg-brand-bg/50 p-2 rounded-xl border border-brand-border text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-400 font-semibold uppercase text-[9px]">Gantry Camera Status:</span>
+              {loading ? (
+                <span className="text-cyan-400 font-bold flex items-center gap-1">
+                  <RefreshCw className="h-3 w-3 animate-spin" /> Ingesting...
+                </span>
+              ) : inspectionResult ? (
+                <span className={`font-extrabold tracking-wider ${
+                  inspectionResult.status === "PASS" 
+                    ? "text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.2)] animate-pulse" 
+                    : "text-rose-500 font-black"
+                }`}>
                   {inspectionResult.status} ({Math.round(inspectionResult.confidence_score * 100)}%)
                 </span>
               ) : (
                 <span className="text-slate-500">IDLE</span>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setZoomLevel(prev => Math.min(prev + 0.25, 2.5))}
-                className="p-1 bg-brand-card hover:bg-brand-border border border-brand-border text-slate-300 hover:text-white rounded transition"
-                title="Zoom In"
-              >
+            
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => setZoomLevel(prev => Math.min(prev + 0.25, 2.5))} className="p-1 bg-brand-card hover:bg-brand-border border border-brand-border text-slate-300 hover:text-white rounded transition">
                 <ZoomIn className="h-3.5 w-3.5" />
               </button>
-              <button 
-                onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, 1))}
-                className="p-1 bg-brand-card hover:bg-brand-border border border-brand-border text-slate-300 hover:text-white rounded transition"
-                title="Zoom Out"
-              >
+              <button onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, 1))} className="p-1 bg-brand-card hover:bg-brand-border border border-brand-border text-slate-300 hover:text-white rounded transition">
                 <ZoomOut className="h-3.5 w-3.5" />
               </button>
-              <button 
-                onClick={() => setZoomLevel(1)}
-                className="p-1 bg-brand-card hover:bg-brand-border border border-brand-border text-slate-300 hover:text-white rounded transition"
-                title="Reset View"
-              >
+              <button onClick={() => setZoomLevel(1)} className="p-1 bg-brand-card hover:bg-brand-border border border-brand-border text-slate-300 hover:text-white rounded transition">
                 <RotateCcw className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Results & Golden sample comparison (30% / 3 Cols) */}
-        <div className="lg:col-span-3 glass-card border border-brand-border rounded-2xl p-4 space-y-4 flex flex-col justify-between">
+        {/* RIGHT COLUMN: 2x2 Stats Cards, Recent logs, Checklist, Golden Sample (30% / 3 Cols) */}
+        <div className="lg:col-span-3 space-y-4 flex flex-col justify-between">
           
-          <div>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 mb-3">
-              <Cpu className="h-3.5 w-3.5 text-cyan-400" />
-              📋 Results Analysis
-            </h3>
+          {/* 2x2 Stats Cards Grid */}
+          <div className="grid grid-cols-2 gap-3 text-center">
+            <div className="p-2.5 bg-brand-card/45 border border-brand-border/60 rounded-xl relative overflow-hidden flex flex-col justify-center min-h-[64px]">
+              <span className="text-[8px] text-slate-400 uppercase font-bold block">Total Inspected</span>
+              <p className="text-lg font-black text-white mt-0.5">{stats.total_inspected}</p>
+              <span className="text-[7px] text-emerald-400 font-mono absolute bottom-1 right-2">↑ 5.2%</span>
+            </div>
+            
+            <div className="p-2.5 bg-brand-card/45 border border-brand-border/60 rounded-xl relative overflow-hidden flex flex-col justify-center min-h-[64px]">
+              <span className="text-[8px] text-slate-400 uppercase font-bold block">Pass Rate</span>
+              <p className="text-lg font-black text-emerald-400 mt-0.5">{stats.pass_rate}%</p>
+              <span className="text-[7px] text-emerald-400 font-mono absolute bottom-1 right-2">↑ 1.2%</span>
+            </div>
 
-            {/* Side by side Golden sample comparison */}
-            <div className="space-y-2">
-              <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Golden Sample Comparison</span>
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="p-2 bg-brand-bg/50 border border-emerald-500/40 rounded-xl flex flex-col items-center">
-                  <span className="text-[8px] text-emerald-400 uppercase font-black tracking-widest mb-1.5 flex items-center gap-0.5">
-                    <Check className="h-2.5 w-2.5" /> GOLDEN
-                  </span>
-                  <div className="w-full h-16 bg-[#030712] rounded border border-brand-border/40 overflow-hidden relative">
-                    <img src="/datasets/demo_images/machined_part_inspection.jpg" alt="Golden template reference" className="w-full h-full object-cover opacity-80" />
-                  </div>
+            <div className="p-2.5 bg-brand-card/45 border border-brand-border/60 rounded-xl relative overflow-hidden flex flex-col justify-center min-h-[64px]">
+              <span className="text-[8px] text-slate-400 uppercase font-bold block">Passed Yield</span>
+              <p className="text-lg font-black text-emerald-400 mt-0.5">{stats.passed_count}</p>
+            </div>
+
+            <div className="p-2.5 bg-brand-card/45 border border-brand-border/60 rounded-xl relative overflow-hidden flex flex-col justify-center min-h-[64px]">
+              <span className="text-[8px] text-slate-400 uppercase font-bold block">Fail Count</span>
+              <p className="text-lg font-black text-rose-500 mt-0.5">{stats.failed_count}</p>
+              <span className="text-[7px] text-rose-400 font-mono absolute bottom-1 right-2">↓ 3.8%</span>
+            </div>
+          </div>
+
+          {/* Golden Sample comparative view */}
+          <div className="p-3 bg-brand-card/30 border border-brand-border/60 rounded-xl space-y-1.5">
+            <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider block">Golden Sample Comparison</span>
+            <div className="grid grid-cols-2 gap-2 text-center text-[10px]">
+              <div className="p-1.5 bg-brand-bg/40 border border-emerald-500/40 rounded-lg flex flex-col items-center">
+                <span className="text-[8px] text-emerald-400 font-bold mb-1 flex items-center gap-0.5"><Check className="h-2 w-2" /> GOLDEN</span>
+                <div className="w-full h-12 rounded border border-brand-border/50 overflow-hidden relative">
+                  <img src="/datasets/demo_images/machined_part_inspection.jpg" alt="Golden template reference" className="w-full h-full object-cover opacity-85" />
                 </div>
-                
-                <div className={`p-2 bg-brand-bg/50 border rounded-xl flex flex-col items-center transition ${
-                  inspectionResult?.status === "PASS" ? "border-emerald-500/40" : "border-rose-500/40"
+              </div>
+
+              <div className={`p-1.5 bg-brand-bg/40 border rounded-lg flex flex-col items-center transition ${
+                inspectionResult?.status === "PASS" ? "border-emerald-500/40" : "border-rose-500/40"
+              }`}>
+                <span className={`text-[8px] font-bold mb-1 flex items-center gap-0.5 ${
+                  inspectionResult?.status === "PASS" ? "text-emerald-400" : "text-rose-500"
                 }`}>
-                  <span className={`text-[8px] uppercase font-black tracking-widest mb-1.5 flex items-center gap-0.5 ${
-                    inspectionResult?.status === "PASS" ? "text-emerald-400" : "text-rose-500"
-                  }`}>
-                    {inspectionResult?.status === "PASS" ? <Check className="h-2.5 w-2.5" /> : <X className="h-2.5 w-2.5" />} CURRENT
-                  </span>
-                  <div className="w-full h-16 bg-[#030712] rounded border border-brand-border/40 overflow-hidden relative">
-                    <img src="/datasets/demo_images/machined_part_inspection.jpg" alt="Active check" className="w-full h-full object-cover" />
-                  </div>
+                  {inspectionResult?.status === "PASS" ? <Check className="h-2 w-2" /> : <X className="h-2 w-2" />} CURRENT
+                </span>
+                <div className="w-full h-12 rounded border border-brand-border/50 overflow-hidden relative">
+                  <img src="/datasets/demo_images/machined_part_inspection.jpg" alt="Active camera reference" className="w-full h-full object-cover" />
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Detailed checks checklist */}
-            <div className="space-y-2.5 mt-4">
-              <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider block">Diagnostics Checklist</span>
+          {/* Diagnostic check list */}
+          <div className="p-3 bg-brand-card/30 border border-brand-border/60 rounded-xl space-y-1.5 flex-1 flex flex-col justify-center">
+            <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider block">Diagnostics Checklist</span>
+            <div className="space-y-1 text-[9px]">
+              <div className="flex justify-between items-center bg-brand-bg/20 p-1.5 rounded border border-brand-border/30">
+                <span className="text-slate-300">Surface Integrity Check</span>
+                <span className={`font-bold flex items-center gap-0.5 ${
+                  inspectionResult?.defect_type === "SURFACE_CRACK" ? "text-rose-500" : "text-emerald-400"
+                }`}>
+                  {inspectionResult?.defect_type === "SURFACE_CRACK" ? "❌ FAIL" : "✅ PASS"}
+                </span>
+              </div>
               
-              <div className="space-y-1.5 text-[10px]">
-                <div className="flex justify-between items-center bg-brand-bg/40 p-2 rounded-lg border border-brand-border/30">
-                  <span className="text-slate-300">Surface Integrity Check</span>
-                  <span className={`font-bold flex items-center gap-1 ${
-                    inspectionResult?.defect_type === "SURFACE_CRACK" ? "text-rose-500" : "text-emerald-400"
-                  }`}>
-                    {inspectionResult?.defect_type === "SURFACE_CRACK" ? "❌ FAIL (CRACK)" : "✅ PASS"}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center bg-brand-bg/40 p-2 rounded-lg border border-brand-border/30">
-                  <span className="text-slate-300">Marking & Serial Label</span>
-                  <span className={`font-bold flex items-center gap-1 ${
-                    inspectionResult?.defect_type === "LABEL_MISSING" ? "text-rose-500" : "text-emerald-400"
-                  }`}>
-                    {inspectionResult?.defect_type === "LABEL_MISSING" ? "❌ MISSING" : "✅ PASS"}
-                  </span>
-                </div>
+              <div className="flex justify-between items-center bg-brand-bg/20 p-1.5 rounded border border-brand-border/30">
+                <span className="text-slate-300">Marking & Serial Label</span>
+                <span className={`font-bold flex items-center gap-0.5 ${
+                  inspectionResult?.defect_type === "LABEL_MISSING" ? "text-rose-500" : "text-emerald-400"
+                }`}>
+                  {inspectionResult?.defect_type === "LABEL_MISSING" ? "❌ FAIL" : "✅ PASS"}
+                </span>
+              </div>
 
-                <div className="flex justify-between items-center bg-brand-bg/40 p-2 rounded-lg border border-brand-border/30">
-                  <span className="text-slate-300">Color Spectrum analysis</span>
-                  <span className={`font-bold flex items-center gap-1 ${
-                    inspectionResult?.defect_type === "WRONG_COLOR" ? "text-rose-500" : "text-emerald-400"
-                  }`}>
-                    {inspectionResult?.defect_type === "WRONG_COLOR" ? "❌ DEVIATION" : "✅ PASS"}
-                  </span>
-                </div>
+              <div className="flex justify-between items-center bg-brand-bg/20 p-1.5 rounded border border-brand-border/30">
+                <span className="text-slate-300">Color Spectrum analysis</span>
+                <span className={`font-bold flex items-center gap-0.5 ${
+                  inspectionResult?.defect_type === "WRONG_COLOR" ? "text-rose-500" : "text-emerald-400"
+                }`}>
+                  {inspectionResult?.defect_type === "WRONG_COLOR" ? "❌ FAIL" : "✅ PASS"}
+                </span>
+              </div>
 
-                <div className="flex justify-between items-center bg-brand-bg/40 p-2 rounded-lg border border-brand-border/30">
-                  <span className="text-slate-300">Dimensional tolerances (XYZ)</span>
-                  <span className={`font-bold flex items-center gap-1 ${
-                    inspectionResult?.defect_type === "WRONG_DIMENSION" ? "text-rose-500" : "text-emerald-400"
-                  }`}>
-                    {inspectionResult?.defect_type === "WRONG_DIMENSION" ? "❌ ERR (Δy)" : "✅ PASS"}
-                  </span>
-                </div>
+              <div className="flex justify-between items-center bg-brand-bg/20 p-1.5 rounded border border-brand-border/30">
+                <span className="text-slate-300">Dimensional tolerances (XYZ)</span>
+                <span className={`font-bold flex items-center gap-0.5 ${
+                  inspectionResult?.defect_type === "WRONG_DIMENSION" ? "text-rose-500" : "text-emerald-400"
+                }`}>
+                  {inspectionResult?.defect_type === "WRONG_DIMENSION" ? "❌ FAIL" : "✅ PASS"}
+                </span>
               </div>
             </div>
           </div>
-
-          {/* Active defects warning list logs */}
-          <div className="mt-4 p-3 bg-brand-bg/40 border border-brand-border/60 rounded-xl text-[10px]">
-            <span className="text-slate-400 font-bold uppercase text-[9px] block mb-1">Defects Breakdown Log:</span>
-            {inspectionResult && inspectionResult.defect_type !== "NONE" ? (
-              <ul className="list-disc pl-4 space-y-1 text-rose-400 font-medium">
-                {inspectionResult.defect_type === "SURFACE_CRACK" && <li>Surface fracture detected near centroid (x:245, y:180).</li>}
-                {inspectionResult.defect_type === "LABEL_MISSING" && <li>Missing serial identification barcode label.</li>}
-                {inspectionResult.defect_type === "WRONG_COLOR" && <li>RGB spectrum mismatch. Target: Silver. Detected: Gray.</li>}
-                {inspectionResult.defect_type === "WRONG_DIMENSION" && <li>Caliper limits exceeded. Height Δy: +1.2mm.</li>}
-              </ul>
-            ) : (
-              <span className="text-emerald-400 font-semibold flex items-center gap-1 mt-1">
-                <Check className="h-3 w-3" /> No abnormalities found.
-              </span>
-            )}
-          </div>
+          
         </div>
       </div>
 
       {/* BOTTOM PANEL: Live feed controller and speed indicators (Full-Width) */}
-      {isLive && (
+      {isLive ? (
         <div className="p-3.5 glass-card border border-brand-border rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -786,6 +768,25 @@ export default function QualityDashboard() {
             </div>
           </div>
         </div>
+      ) : (
+        /* Static view details log footer */
+        inspectionResult && (
+          <div className="p-3.5 glass-card border border-brand-border rounded-2xl text-[10px] flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-cyan-400" />
+              <span className="text-slate-300 font-medium">
+                {inspectionResult.defect_type !== "NONE" 
+                  ? `[DEFECT LOGGED]: ${inspectionResult.defect_type.replace("_", " ")} detected at caliper tolerances limits.` 
+                  : "No surface anomalies or measurement deviations detected on this batch segment."}
+              </span>
+            </div>
+            {inspectionResult.defect_type !== "NONE" && (
+              <span className="font-bold text-rose-400 uppercase font-mono tracking-widest text-[9px]">
+                [SCADA Halt Active: consecutive limit check online]
+              </span>
+            )}
+          </div>
+        )
       )}
 
       {/* Global tips and keyboard help bar */}
